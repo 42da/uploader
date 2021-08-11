@@ -75,3 +75,13 @@ input[id^="chk_file"] {
 	margin: 0;
 	padding: 4px 5px 0px 0px;
 }
+
+.completed_list {
+	position: static;
+	display: block;
+	height: auto;
+}
+.completed_file {
+	display: block;
+	margin: 10px 0 10px 0;
+}
