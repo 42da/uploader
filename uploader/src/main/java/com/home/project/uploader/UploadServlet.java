@@ -49,9 +49,11 @@ public class UploadServlet extends HttpServlet {
 		// TODO Auto-generated method stub
 		System.out.println("\npost");
 		request.setCharacterEncoding("utf-8");
-		String saveDirectory = "D:\\upload_path\\";
+		String saveDirectory = "C:\\uploader\\upload_path\\";
+		String tempDirectory = "C:\\uploader\\temp\\";
+//		String saveDirectory = "D:\\upload_path\\";
+//		String tempDirectory = "D:\\temp\\";
 		String path = "";
-		String tempDirectory = "D:\\temp\\";
 		
 		int maxSize = 1024 * 1024 * 5;
 		String encoding = "UTF-8";
@@ -59,10 +61,10 @@ public class UploadServlet extends HttpServlet {
 //		MultipartRequest multi = new MultipartRequest(request, tempDirectory, maxSize, encoding, new DefaultFileRenamePolicy());
 		MultipartRequest multi = new MultipartRequest(request, tempDirectory, maxSize, encoding);
 
-//		Enumeration files = multi.getFileNames();
-//		String item = (String) files.nextElement();
-////		String ofileName = multi.getOriginalFileName(item);
-//		String blob = multi.getFilesystemName(item);
+		Enumeration files = multi.getFileNames();
+		String item = (String) files.nextElement();
+//		String ofileName = multi.getOriginalFileName(item);
+		String blob = multi.getFilesystemName(item);
 		
 		int start = Integer.parseInt(multi.getParameter("start"));
 		boolean divUpload = Boolean.parseBoolean(multi.getParameter("divUpload"));
@@ -134,11 +136,13 @@ public class UploadServlet extends HttpServlet {
 		RandomAccessFile main_file = new RandomAccessFile(path + ofileName, "rw");
 		main_file.seek(start);
 		
-		FileInputStream chunk_file = new FileInputStream(tempDirectory + name);			// where is blob file
+		FileInputStream chunk_file = new FileInputStream(tempDirectory + blob);
 		int data = 0;
+		
 		while((data = chunk_file.read()) != -1) {
 			main_file.write(data);
 		}
+		System.out.println("write to main file");	// breakpoint
 		main_file.close();
 		chunk_file.close();
 		

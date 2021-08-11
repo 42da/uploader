@@ -1,4 +1,4 @@
-(function() {
+ (function() {
 	function fileAdd() {
 		document.getElementById("file_add").click();
 	}
@@ -17,9 +17,10 @@
 		var xhr = new XMLHttpRequest();
 		
 		xhr.open('POST', '/uploader/UploadServlet');
-		if (divUpload) fileList[fileIndex] = fileList[fileIndex]['obj'].slice(start, end);
-		console.log(first, fileList[fileIndex]);
-		formData.set('file', fileList[fileIndex]['obj']);
+		if (divUpload) formData.set('file', fileList[fileIndex]['obj'].slice(start, end));
+		else formData.set('file', fileList[fileIndex]['obj']);
+		console.log(first, fileList);
+		
 		formData.set('start', start);
 		formData.set('divUpload', divUpload);
 		formData.set('originalName', originalName);
@@ -27,7 +28,8 @@
 		formData.set('first', first);
 		formData.set('last', last);
 		formData.set('fullSize', fullSize);
-		formData.set('name', name)
+		formData.set('name', name);
+		
 //		if (first) {
 //			formData.set('first', first);
 ////			formData.set('fileInfo', JSON.stringify(fileList[fileIndex]));
@@ -85,7 +87,7 @@
 	}
 	var fileList = [];
 	var formData = new FormData();
-	var chunkSize = 1024 * 1024 * 5;
+	var chunkSize = 1000 * 1000 * 5;	// 1024 * 1024 * 5 하면 차이남
 	var start = 0;
 	var end = chunkSize;
 	window.onload = function() {
