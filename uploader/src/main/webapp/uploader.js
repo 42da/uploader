@@ -15,54 +15,48 @@
 	function upload(start, end, chunkSize, divUpload, originalName, guid, first, last, fileIndex, fullSize, name) {
 		
 		var xhr = new XMLHttpRequest();
-		
+
 		xhr.open('POST', '/uploader/UploadServlet');
-		if (divUpload) formData.set('file', fileList[fileIndex]['obj'].slice(start, end));
-		else formData.set('file', fileList[fileIndex]['obj']);
-		console.log(first, fileList);
+		if (divUpload) formData.append('file', fileList[fileIndex]['obj'].slice(start, end));
+		else formData.append('file', fileList[fileIndex]['obj']);
 		
-		formData.set('start', start);
-		formData.set('divUpload', divUpload);
-		formData.set('originalName', originalName);
-		formData.set('guid', guid);
-		formData.set('first', first);
-		formData.set('last', last);
-		formData.set('fullSize', fullSize);
-		formData.set('name', name);
+		formData.append('start', start);
+		formData.append('divUpload', divUpload);
+		formData.append('originalName', originalName);
+		formData.append('guid', guid);
+		formData.append('first', first);
+		formData.append('last', last);
+		formData.append('fullSize', fullSize);
+		formData.append('name', name);
 		
-//		if (first) {
-//			formData.set('first', first);
-////			formData.set('fileInfo', JSON.stringify(fileList[fileIndex]));
-////			xhr.setRequestHeader("first", true);
-//		} else if (!first && last){
-//			formData.set('last', last);
-////			xhr.setRequestHeader("first", false);
-//		}
-		
+		xhr.upload.onprogress = function(e) {
+			if (e.lengthComputable) {
+				if (divUpload) {
+					var ratio = Math.round((end / fullSize) * 100) + '%';
+					console.log(ratio);
+				}
+			}
+		}
 		xhr.onreadystatechange = function () {
 			if (xhr.readyState === xhr.DONE) {
 				if (xhr.status === 0 || (xhr.status >= 200 && xhr.status < 400)) { // In local files, status is 0 upon success in Mozilla Firefox
-//					formData.delete('file');
-//					formData.delete('fileInfo');
-//					first = false;
+					
 					if (!divUpload || last) {
+						
 						var loaded_list = document.createElement("ul");
 						loaded_list.className = "completed_list";
 						var loaded_file = document.createElement("li");
 						loaded_file.className = "completed_file";
+						loaded_file.style.marginTop = "20px";
 						loaded_file.innerText = fileList[fileIndex]['originalName'] + " 업로드 완료";
 						loaded_list.appendChild(loaded_file);
 						loaded_list.style.width = "768px";
 						loaded_list.style.textAlign = "right";
-						document.body.appendChild(loaded_list);
-						
-						console.log(start, end, chunkSize, divUpload, first, last, fileIndex, fullSize);
-						console.log(fileList);
-						console.log(xhr.responseText);
 
+						document.body.querySelector(".upload_gray").appendChild(loaded_list);
 						fileList[fileIndex]['path'] = xhr.responseText + fileList[fileIndex]['originalName'];
 
-						if (++fileIndex == fileList.length) return; 
+						if (++fileIndex == fileList.length) return;
 						else {
 							start = 0;
 							end = chunkSize;
@@ -70,15 +64,19 @@
 						}
 
 					} else {
+						
 						start = end;
 						end = start + chunkSize;
-						first = false;
+						fileList[fileIndex]['first'] = false;
 						if (end >= fullSize) {
 							end = fullSize;
-							last = true;
+							fileList[fileIndex]['last'] = true;
 						}
+
 					}
-					upload(start, end, chunkSize, fileList[fileIndex]['divUpload'], fileList[fileIndex]['first'], fileList[fileIndex]['last'], fileIndex, fullSize, fileList[fileIndex]['name']);
+					upload(start, end, chunkSize, fileList[fileIndex]['divUpload'], fileList[fileIndex]['originalName'],
+									fileList[fileIndex]['GUID'], fileList[fileIndex]['first'], fileList[fileIndex]['last'], 
+									fileIndex, fullSize, fileList[fileIndex]['name']);
 				}
 			}
 			
@@ -87,9 +85,12 @@
 	}
 	var fileList = [];
 	var formData = new FormData();
-	var chunkSize = 1000 * 1000 * 5;	// 1024 * 1024 * 5 하면 차이남
+	var chunkSize = 1024 * 1024 * 5;	// 1024 * 1024 * 5 하면 차이남
 	var start = 0;
 	var end = chunkSize;
+	 if (window.NodeList && !NodeList.prototype.forEach) {
+		 NodeList.prototype.forEach = Array.prototype.forEach;
+	 }
 	window.onload = function() {
 		var btns = document.querySelectorAll("button");
 		var list = document.getElementById("file_list");
@@ -98,17 +99,19 @@
 			btn.addEventListener("click", function() {
 				switch (btn.id) {
 					case "add":
-						console.log("add");
-						fileAdd();
+
+//						fileAdd();
 						var input = document.getElementById("file_add");
-						console.log(input);
+						
 						
 						input.addEventListener("change", function() {
 							
 							var file = input.files;
-							console.log(file);
+
 							var ol = document.getElementById("file_list");
-							for (var index = 0; index < file.length; index++) {
+							
+							debugger;
+							for (var index = 0; index < file.length; index++) {		// MDN input.addEventListner("change") 참고해야함 
 								fileList.push(
 										{
 //											obj: file[index]['size'] > chunkSize ? file[index].slice(start, chunkSize) : file[index],
@@ -155,7 +158,7 @@
 								fsize.className = "fsize";
 								
 								var fsizeSp = document.createElement("span");
-								fsizeSp.title = `${file[index]['size']} bytes`;
+								fsizeSp.title = String(file[index]['size']) + " bytes";
 								fsizeSp.innerText = file[index]['size'] + " bytes";
 								fsizeSp.style.textAlign = "right";
 								
@@ -170,11 +173,10 @@
 							}
 							
 							list.style.height = String(file.length * 21) + "px";
-							console.log(file);
-							console.log(input.value);
-							console.log(fileList);
+							
 							
 						});
+						input.click();	// click 호출을 change 이벤트 이후에 적용(이전에 하면 IE에서 동작x)
 						break;
 					case "submit":
 						upload(start, end, chunkSize, fileList[0]['divUpload'], fileList[0]['originalName'], fileList[0]['GUID'],
