@@ -107,10 +107,27 @@
 						input.addEventListener("change", function() {
 							
 							var file = input.files;
-
+//							fileList.push(
+//								{
+//									//obj: file[index]['size'] > chunkSize ? file[index].slice(start, chunkSize) : file[index],
+//									obj: file[index],
+//									fileIndex: index,
+//									size: file[index]['size'],
+//									originalName: file[index]['name'],
+//									name: file[index]['name'].substring(0, file[index]['name'].lastIndexOf('.')),
+//									extension: '.' + file[index]['name'].split('.').pop(),
+//									chunksize: file[index].slice(start, chunkSize)['size'],
+//									divUpload: file[index]['size'] > chunkSize ? true : false,
+//									lastModified: file[index]['lastModified'],
+//									GUID: guid(),
+//									path: '',
+//									first: true,
+//									last: false
+//								}
+//							);
 							var ol = document.getElementById("file_list");
-							
-							debugger;
+							console.log(file, "file!!!!");
+//							debugger;
 							for (var index = 0; index < file.length; index++) {		// MDN input.addEventListner("change") 참고해야함 
 								fileList.push(
 										{

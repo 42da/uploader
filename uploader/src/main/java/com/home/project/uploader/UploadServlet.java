@@ -50,10 +50,10 @@ public class UploadServlet extends HttpServlet {
 		// TODO Auto-generated method stub
 
 		request.setCharacterEncoding("utf-8");
-//		String saveDirectory = "C:\\uploader\\upload_path\\";
-//		String tempDirectory = "C:\\uploader\\temp\\";
-		String saveDirectory = "D:\\upload_path\\";
-		String tempDirectory = "D:\\temp\\";
+		String saveDirectory = "C:\\uploader\\upload_path\\";
+		String tempDirectory = "C:\\uploader\\temp\\";
+//		String saveDirectory = "D:\\upload_path\\";
+//		String tempDirectory = "D:\\temp\\";
 		String path = "";
 		
 		int maxSize = 1024 * 1024 * 10;
