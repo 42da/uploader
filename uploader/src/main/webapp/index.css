@@ -43,6 +43,7 @@ input[id^="chk_file"] {
 
 .fname {
 	position: static;
+	cursor: pointer;
 	top: 0px;
 	left: 0px;
 	height: 21px;
@@ -53,7 +54,7 @@ input[id^="chk_file"] {
 }
 
 .fname span {
-	cursor: pointer;
+	
 	display: block;
 	height: 18px;
 	line-height: 18px;

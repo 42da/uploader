@@ -50,13 +50,13 @@ public class UploadServlet extends HttpServlet {
 		// TODO Auto-generated method stub
 
 		request.setCharacterEncoding("utf-8");
-		String saveDirectory = "C:\\uploader\\upload_path\\";
-		String tempDirectory = "C:\\uploader\\temp\\";
-//		String saveDirectory = "D:\\upload_path\\";
-//		String tempDirectory = "D:\\temp\\";
+//		String saveDirectory = "C:\\uploader\\upload_path\\";
+//		String tempDirectory = "C:\\uploader\\temp\\";
+		String saveDirectory = "D:\\upload_path\\";
+		String tempDirectory = "D:\\temp\\";
 		String path = "";
 		
-		int maxSize = 1024 * 1024 * 10;
+		int maxSize = 1024 * 1024 * 1000;
 		String encoding = "UTF-8";
 
 //		MultipartRequest multi = new MultipartRequest(request, tempDirectory, maxSize, encoding, new DefaultFileRenamePolicy());
@@ -147,7 +147,6 @@ public class UploadServlet extends HttpServlet {
 			PrintWriter out = response.getWriter();
 			out.println(path);
 		} else if (!divUpload) {
-			
 			File tmp_path = new File(tempDirectory + guid + ".txt");
 			File tmp_file = new File(tempDirectory + ofileName);
 			tmp_path.delete();
@@ -161,6 +160,5 @@ public class UploadServlet extends HttpServlet {
 	    
 //		doGet(request, response);
 	}
-
 }
 		
