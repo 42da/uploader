@@ -86,3 +86,9 @@ input[id^="chk_file"] {
 	display: block;
 	margin: 10px 0 10px 0;
 }
+
+#cancel {
+	position: absolute;
+	top: 0;
+	right: 0;
+}
