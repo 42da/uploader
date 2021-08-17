@@ -64,49 +64,37 @@ public class UploadServlet extends HttpServlet {
 
 		Enumeration files = multi.getFileNames();
 		String item = (String) files.nextElement();
-//		String ofileName = multi.getOriginalFileName(item);
 		String blob = multi.getFilesystemName(item);		// chunk file
 		
-		int start = Integer.parseInt(multi.getParameter("start"));
+		long start = Long.parseLong(multi.getParameter("start"));
+		String ext = multi.getParameter("extension");
 		boolean divUpload = Boolean.parseBoolean(multi.getParameter("divUpload"));
 		String ofileName = multi.getParameter("originalName");
 		String guid = multi.getParameter("guid");
 		boolean first = Boolean.parseBoolean(multi.getParameter("first"));
 		boolean last = Boolean.parseBoolean(multi.getParameter("last"));
 		int fullSize = Integer.parseInt(multi.getParameter("fullSize"));
-		String name = multi.getParameter("name");
-		
-		/* json parsing try 밖에서 쓰는 방법*/
-//		JSONObject jsonObj = null;
-		
-//		try {
-//			JSONParser parser = new JSONParser();
-//			Object obj = parser.parse(fileInfo);
-//			jsonObj = (JSONObject) obj;	
-//		} catch(Exception e) {
-//			
-//		}
-		/*------------------------------*/
-//		boolean first = (Boolean) jsonObj.get("first");
-//		boolean last = (Boolean) jsonObj.get("last");
-//		String ofileName = (String) jsonObj.get("originalName");
-//		String name = (String) jsonObj.get("name");
-//		int size = ((Long) jsonObj.get("size")).intValue();
-//		String guid = (String) jsonObj.get("GUID");
-//		boolean divUpload = (Boolean) jsonObj.get("divUpload"); 
+//		String name = multi.getParameter("name");
 		
 		if (first) {
+			RandomAccessFile main_file = null;
+			FileOutputStream tmp_path = null;
+			path = saveDirectory + guid + ext;
+			try {
+				main_file = new RandomAccessFile(path, "rw");
+				main_file.setLength(fullSize);
+				
+				File file = new File(tempDirectory + guid + ".txt");
+				tmp_path = new FileOutputStream(file);
+				tmp_path.write(path.getBytes());
+			} catch(Exception ex) {
+				
+			} finally {
+				main_file.close();
+				tmp_path.close();
+			}
 			
-			RandomAccessFile main_file = new RandomAccessFile(saveDirectory + ofileName, "rw");
-			main_file.setLength(fullSize);
-			main_file.close();
 			
-			File file = new File(tempDirectory + guid + ".txt");
-			FileOutputStream tmp_path = new FileOutputStream(file);
-			tmp_path.write(saveDirectory.getBytes());
-			tmp_path.close();
-
-			path = saveDirectory;
 
 		} else {
 			FileInputStream tmp_path = new FileInputStream(tempDirectory + guid + ".txt");
@@ -117,22 +105,47 @@ public class UploadServlet extends HttpServlet {
 		}
 		
 		// write
-		RandomAccessFile main_file = new RandomAccessFile(path + ofileName, "rw");
-		main_file.seek(start);
+		RandomAccessFile main_file = null;
+		FileOutputStream fos = null;
+		BufferedOutputStream bos = null;
+		FileInputStream chunk_file = null;
+		BufferedInputStream bis = null;
 		
-		FileInputStream chunk_file = new FileInputStream(tempDirectory + blob);
-		
-		int data = 0;
-		byte [] buf = new byte[8 * 1024];		// 1024 or 8 * 1024
-		
-//		while((data = chunk_file.read()) != -1) {		// .read() 하는 순간 다음 byte 읽음
-//			main_file.write(chunk_file.read());			// data를 써야 하는데 다음 byte가 써짐.
-//			
-//			main_file.write(data);
-//		}
-		while ((data = chunk_file.read(buf)) != -1) main_file.write(buf, 0, data);
-		main_file.close();
-		chunk_file.close();
+		try {
+			File file = new File(path);
+			main_file = new RandomAccessFile(file, "rw");
+			System.out.println(main_file.getFilePointer());
+			main_file.seek(start);
+			System.out.println(main_file.getFilePointer());
+			fos = new FileOutputStream(main_file.getFD());
+			bos = new BufferedOutputStream(fos);
+			
+			chunk_file = new FileInputStream(tempDirectory + blob);
+			bis = new BufferedInputStream(chunk_file);
+			
+			int data = 0;
+			int bufferLength = 8 * 1024;
+			byte[] buf = new byte[bufferLength];		// 1024 or 8 * 1024
+			
+//			while((data = chunk_file.read()) != -1) {		// .read() 하는 순간 다음 byte 읽음
+//				main_file.write(chunk_file.read());			// data를 써야 하는데 다음 byte가 써짐.
+//				
+//				main_file.write(data);
+//			}
+			while ((data = chunk_file.read(buf)) != -1) {
+				main_file.write(buf, 0, data);
+//				bos.write(buf, 0, data);
+			}
+		} catch(Exception ex) {
+			System.out.println(ex.toString());
+		} finally {
+			bis.close();
+			chunk_file.close();
+			
+			bos.close();
+			fos.close();
+			main_file.close();
+		}
 		
 		// last chunk?
 		if (divUpload && last) {
