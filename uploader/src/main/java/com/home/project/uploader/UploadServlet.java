@@ -50,10 +50,10 @@ public class UploadServlet extends HttpServlet {
 		// TODO Auto-generated method stub
 
 		request.setCharacterEncoding("utf-8");
-//		String saveDirectory = "C:\\uploader\\upload_path\\";
-//		String tempDirectory = "C:\\uploader\\temp\\";
-		String saveDirectory = "D:\\upload_path\\";
-		String tempDirectory = "D:\\temp\\";
+		String saveDirectory = "C:\\uploader\\upload_path\\";
+		String tempDirectory = "C:\\uploader\\temp\\";
+//		String saveDirectory = "D:\\upload_path\\";
+//		String tempDirectory = "D:\\temp\\";
 		String path = "";
 		
 		int maxSize = 1024 * 1024 * 1000;
@@ -105,6 +105,7 @@ public class UploadServlet extends HttpServlet {
 		}
 		
 		// write
+
 		RandomAccessFile main_file = null;
 		FileOutputStream fos = null;
 		BufferedOutputStream bos = null;
@@ -127,8 +128,8 @@ public class UploadServlet extends HttpServlet {
 			int bufferLength = 8 * 1024;
 			byte[] buf = new byte[bufferLength];		// 1024 or 8 * 1024
 			
-//			while((data = chunk_file.read()) != -1) {		// .read() ÇÏ´Â ¼ø°£ ´ÙÀ½ byte ÀĞÀ½
-//				main_file.write(chunk_file.read());			// data¸¦ ½á¾ß ÇÏ´Âµ¥ ´ÙÀ½ byte°¡ ½áÁü.
+//			while((data = chunk_file.read()) != -1) {		// .read() í•˜ëŠ” ìˆœê°„ ë‹¤ìŒ byte ì½ìŒ
+//				main_file.write(chunk_file.read());			// dataë¥¼ ì¨ì•¼ í•˜ëŠ”ë° ë‹¤ìŒ byteê°€ ì¨ì§.
 //				
 //				main_file.write(data);
 //			}
