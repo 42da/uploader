@@ -1,8 +1,4 @@
 (function() {
-	//	function fileAdd() {
-	//		document.getElementById("file_add").click();
-	//	}
-
 	function guid() {
 		function s4() {
 			return Math.floor((1 + Math.random()) * 0x10000)
@@ -12,6 +8,9 @@
 		return s4() + s4() + '-' + s4() + '-' + s4() + '-' +
 			s4() + '-' + s4() + s4() + s4();
 	}
+	function roundToOne(num) {		// 반올림
+		return +(Math.round(num + "e+1") + "e-1");
+	}
 	function upload(start, end, chunkSize, divUpload, originalName, guid, first, last, fileIndex, fullSize, name, curWindow) {
 		var formData = new FormData();	// formData 초기화(IE에서는 FormData.set, FormData.delete 호환 안됨.)
 		var xhr = new XMLHttpRequest();
@@ -19,7 +18,7 @@
 		xhr.open('POST', '/uploader/UploadServlet');
 		if (divUpload) formData.append('file', fileList[fileIndex]['obj'].slice(start, end));
 		else formData.append('file', fileList[fileIndex]['obj']);
-
+		console.log(end);
 		formData.append('start', start);
 		formData.append('divUpload', divUpload);
 		formData.append('originalName', originalName);
@@ -71,55 +70,71 @@
 		}
 		xhr.upload.onprogress = function(e) {
 			if (e.lengthComputable) {
-				if (divUpload) var ratio = Math.round((end / fullSize) * 100);		// e.loaded vs end
+				if (divUpload) var ratio = roundToOne((end / fullSize) * 100);		// e.loaded vs end => e.loaded: formdata의 다른 item 까지 계산하므로 안됨.
 				else var ratio = 100;
-
+				
+				var total = curWindow.document.getElementById("progress_bar_all");
+				var total_ratio = ratio == 100 ? roundToOne(((fileIndex + 1) / fileList.length) * 100) : roundToOne((fileIndex + (ratio/100)) / fileList.length * 100);
+				total.style.width = total_ratio + '%';
+				total.innerHTML = total_ratio + '% complete';
+				
 				var progress = curWindow.document.getElementById("progress_bar" + fileIndex);
 				progress.style.width = ratio + '%';
 				progress.innerHTML = ratio + '% complete';
-				progress.style.float = "left";
+//				progress.style.float = "left";
 
-				if (ratio >= 100 && fileIndex + 1 == fileList.length) curWindow.close();	// 전역 배열의 마지막
+				if (ratio == 100 && fileIndex + 1 == fileList.length) curWindow.close();	// 마지막 파일 업로드 후 팝업창 닫기
 
 			}
 		}
 		xhr.send(formData);
 	}
-
+	
 	function popup(popWindow, fileList) {
-		for (var idx = 0; idx < fileList.length; idx++) {
+		var createBar = function(num, innerhtml) {
 			var wrapper = popWindow.document.createElement("div");
+			wrapper.id = "wrapper_progress" + num;
+			wrapper.style.marginTop = "40px";
 
-			var fileName = popWindow.document.createElement("p");
-			fileName.innerText = fileList[idx]['originalName'];
-			fileName.style.marginTop = "40px";
+			var title = popWindow.document.createElement("p");
+			title.innerHTML = innerhtml;
 
 			var bar_container = popWindow.document.createElement("div");
-			bar_container.id = "progress_bar_container" + idx;
+			bar_container.id = "progress_bar_container" + num;
 			bar_container.style.height = "20px";
 			bar_container.style.border = "1px solid #9a9a9a";
 
 			var bar = popWindow.document.createElement("div");
-			bar.id = "progress_bar" + idx;
+			bar.id = "progress_bar" + num;
 			bar.style.width = "0%";
 			bar.style.height = "100%";
 			bar.style.backgroundColor = "#e2e2e2";
 
 			bar_container.appendChild(bar);
-
-			wrapper.appendChild(fileName);
+			wrapper.appendChild(title);
 			wrapper.appendChild(bar_container);
 			popWindow.document.body.appendChild(wrapper);
+//			if (num == "_all") {
+//				wrapper.style.position = "fixed";
+//				wrapper.style.width = "100%";
+//				wrapper.style.backgroundColor = "#ffffff";
+//				wrapper.style.marginTop = "0";
+//			}
+		}
+		createBar("_all", "전체 진행률");
+		
+		for (var idx = 0; idx < fileList.length; idx++) {
+			createBar(idx, fileList[idx]['originalName']);
 		}
 	}
 	function onlyOne(checkbox) {			// only one checkbox available
 		var checkboxes = document.querySelectorAll("input_chk");
-		checkboxes.forEach(chkbox, function () {
+		checkboxes.forEach(chkbox, function() {
 			if (chkbox !== checkbox) chkbox.checked = false;
 		});
 	}
 	var fileList = [];
-	var chunkSize = 1024 * 1024 * 5;	// 1024 * 1024 * 5 하면 차이남
+	var chunkSize = 102 * 102 * 5;	// 1024 * 1024 * 5 하면 차이남 -> formdata의 다른 item(key, value)도 포함되어있기 때문
 	var start = 0;
 	var end = chunkSize;
 	if (window.NodeList && !NodeList.prototype.forEach) {
@@ -162,6 +177,7 @@
 											name: files[index]['name'].substring(0, files[index]['name'].lastIndexOf('.')),
 											extension: '.' + files[index]['name'].split('.').pop(),
 											chunksize: files[index].slice(start, chunkSize)['size'],
+											lastModified: files[index]['lastModified'],
 											divUpload: files[index]['size'] > chunkSize ? true : false,
 											GUID: guid(),
 											path: '',
@@ -171,7 +187,7 @@
 									);
 									var li = document.createElement("li");
 									var ul = document.createElement("ul");
-									
+
 									var inputChkLi = document.createElement("li");
 									inputChkLi.className = "input_chk";
 
@@ -211,31 +227,14 @@
 							}
 
 							list.style.height = String(files.length * 21) + "px";
-							
-							// checkbox (use for delete)
-							var chks = document.querySelectorAll("ul");
-							var chksLen = chks.length;
-							chks.forEach(function(chk) {
-								console.log(chks);
-								chk.addEventListener("click", function() {
-									switch (chk.id) {
-										case "fname0":
-											chk.parentNode.firstChild.firstChild.checked = true;
-											break;
-										case "fname1":
-											chk.parentNode.firstChild.firstChild.checked = true;
-											break;
-									}
-
-
-								});
-							});
 						}
-						input.click();	// click 호출을 change 이벤트 이후에 적용(이전에 하면 IE에서 동작x)
+						input.click();	// click 호출을 change 이벤트 이후에 적용(이전에 하면 IE에서 동작x => why?)
 						break;
 					case "submit":
 						var progressPop = window.open("./progress.html", "_blank", options);
-						if ((navigator.appName == 'Netscape' && navigator.userAgent.toLowerCase().indexOf('trident') != -1) || (navigator.userAgent.toLowerCase().indexOf("msie") != -1)) {  // ie -> winPop.onload = new function()
+						if ((navigator.appName == 'Netscape' &&
+							navigator.userAgent.toLowerCase().indexOf('trident') != -1) ||
+							(navigator.userAgent.toLowerCase().indexOf("msie") != -1)) {  // ie -> winPop.onload = new function()
 							progressPop.onload = new function() {
 								popup(progressPop, fileList);
 								upload(start, end, chunkSize, fileList[0]['divUpload'], fileList[0]['originalName'], fileList[0]['GUID'],
@@ -250,6 +249,22 @@
 						}
 						break;
 					case "delete":
+						var chks = document.querySelectorAll("ul");
+						var chksLen = chks.length;
+						chks.forEach(function(chk) {
+							console.log(chks);
+							chk.addEventListener("click", function() {
+								switch (chk.id) {
+									case "fname0":
+										chk.parentNode.firstChild.firstChild.checked = true;
+										break;
+									case "fname1":
+										chk.parentNode.firstChild.firstChild.checked = true;
+										break;
+								}
+
+							});
+						});
 						break;
 					case "deleteAll":
 						break;
