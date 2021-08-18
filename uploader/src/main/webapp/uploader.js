@@ -8,15 +8,30 @@
 		return s4() + s4() + '-' + s4() + '-' + s4() + '-' +
 			s4() + '-' + s4() + s4() + s4();
 	}
-
-	function upload(start, end, chunkSize, extension, divUpload, originalName, guid, first, last, fileIndex, fullSize, name, curWindow, cancel) {
-//		if (cancel) {
-//			return;
-//		}
-
 	function roundToOne(num) {		// 반올림
 		return +(Math.round(num + "e+1") + "e-1");
 	}
+	function upload(start, end, chunkSize, extension, divUpload, originalName, guid, first, last, fileIndex, fullSize, name, curWindow, complete) {
+		if (complete) {		// 이미 완료한 업로드
+			fileIndex++;
+			upload(start, end, chunkSize, fileList[fileIndex]['extension'], fileList[fileIndex]['divUpload'], fileList[fileIndex]['originalName'],
+						fileList[fileIndex]['GUID'], fileList[fileIndex]['first'], fileList[fileIndex]['last'],
+						fileIndex, fileList[fileIndex]['size'], fileList[fileIndex]['name'], curWindow, fileList[fileIndex]['complete']);
+			return;
+		}
+		var cancel_btn = curWindow.document.getElementById("cancel");
+		cancel_btn.onclick = function() {
+			cancel = true;
+		}
+		if (cancel) {
+			stop_info['GUID'] = guid;
+			stop_info['path'] = fileList[fileIndex]['path'];
+			stop_info['fileIndex'] = fileIndex;
+			stop_info['start'] = start;
+			
+			curWindow.close();
+			return;
+		}
 
 		var formData = new FormData();	// formData 초기화(IE에서는 FormData.set, FormData.delete 호환 안됨.)
 		var xhr = new XMLHttpRequest();
@@ -24,8 +39,9 @@
 		xhr.open('POST', '/uploader/UploadServlet');
 		if (divUpload) formData.append('file', fileList[fileIndex]['obj'].slice(start, end));
 		else formData.append('file', fileList[fileIndex]['obj']);
-		console.log(end);
+		
 		formData.append('start', start);
+		formData.append('end', end);
 		formData.append('extension', extension);
 		formData.append('divUpload', divUpload);
 		formData.append('originalName', originalName);
@@ -38,6 +54,7 @@
 		xhr.onreadystatechange = function() {
 			if (xhr.readyState === xhr.DONE) {
 				if (xhr.status === 0 || (xhr.status >= 200 && xhr.status < 400)) { // In local files, status is 0 upon success in Mozilla Firefox
+					
 					if (!divUpload || last) {
 						var loaded_list = document.createElement("ul");
 						loaded_list.className = "completed_list";
@@ -52,12 +69,12 @@
 
 						document.body.querySelector(".upload_gray").appendChild(loaded_list);
 						fileList[fileIndex]['path'] = xhr.responseText + fileList[fileIndex]['originalName'];
-						
+						fileList[fileIndex]['complete'] = true;
 						if (++fileIndex == fileList.length) return;
 						else {
 							start = 0;
 							end = chunkSize;
-							last = false;
+							fileList[fileIndex]['last'] = false;
 						}
 
 					} else {
@@ -67,29 +84,17 @@
 						if (end >= fullSize) {
 							end = fullSize;
 							fileList[fileIndex]['last'] = true;
+							
 						}
 					}
 					upload(start, end, chunkSize, fileList[fileIndex]['extension'], fileList[fileIndex]['divUpload'], fileList[fileIndex]['originalName'],
 						fileList[fileIndex]['GUID'], fileList[fileIndex]['first'], fileList[fileIndex]['last'],
-						fileIndex, fileList[fileIndex]['size'], fileList[fileIndex]['name'], curWindow, cancel);
+						fileIndex, fileList[fileIndex]['size'], fileList[fileIndex]['name'], curWindow, fileList[fileIndex]['complete']);
 				}
 			}
 		}
 		xhr.upload.onprogress = function(e) {
 			if (e.lengthComputable) {
-
-				var cancel_btn = curWindow.document.getElementById("cancel");
-//				cancel_btn.onclick = function() {
-//					cancel = true;
-//				}
-//				cancel_btn.addEventListener("click", function () {
-//					
-//					cancel = true;
-//					console.log(cancel);
-//					
-//				});
-				
-
 
 				if (divUpload) var ratio = roundToOne((end / fullSize) * 100);		// e.loaded vs end => e.loaded: formdata의 다른 item 까지 계산하므로 안됨.
 
@@ -103,7 +108,6 @@
 				var progress = curWindow.document.getElementById("progress_bar" + fileIndex);
 				progress.style.width = ratio + '%';
 				progress.innerHTML = ratio + '% complete';
-//				progress.style.float = "left";
 
 				if (ratio == 100 && fileIndex + 1 == fileList.length) curWindow.close();	// 마지막 파일 업로드 후 팝업창 닫기
 
@@ -111,7 +115,6 @@
 		}
 		
 		xhr.send(formData);
-//		debugger;
 	}
 	
 	function popup(popWindow, fileList) {
@@ -148,6 +151,7 @@
 		createBar("_all", "전체 진행률");
 		
 		for (var idx = 0; idx < fileList.length; idx++) {
+			if (fileList[idx]['complete']) continue;
 			createBar(idx, fileList[idx]['originalName']);
 		}
 	}
@@ -159,13 +163,14 @@
 	}
 	var fileList = [];
 
-	//var chunkSize = 10;	
-=======
-	var chunkSize = 102 * 102 * 5;	// 1024 * 1024 * 5 하면 차이남 -> formdata의 다른 item(key, value)도 포함되어있기 때문
+	var chunkSize = 10;	
+
+//	var chunkSize = 102 * 102 * 5;	// 1024 * 1024 * 5 하면 차이남 -> formdata의 다른 item(key, value)도 포함되어있기 때문
 
 	var start = 0;
 	var end = chunkSize;
 	var cancel = false;
+	var stop_info = {};
 	if (window.NodeList && !NodeList.prototype.forEach) {
 		NodeList.prototype.forEach = Array.prototype.forEach;
 	}
@@ -218,7 +223,8 @@
 											GUID: guid(),
 											path: '',
 											first: true,
-											last: false
+											last: false,
+											complete: false
 										}
 									);
 									var li = document.createElement("li");
@@ -264,7 +270,6 @@
 								}
 							}
 
-
 							ol.style.height = String(files.length * 21) + "px";
 							
 							// checkbox (use for delete)
@@ -290,20 +295,32 @@
 						input.click();	// click 호출을 change 이벤트 이후에 적용(이전에 하면 IE에서 동작x => why?)
 						break;
 					case "submit":
-						var progressPop = window.open("./progress.html", "_blank", options);
+						if (cancel) {
+							var resume = confirm("이어올리기? (취소 시 처음부터)");
+							if (resume) {
+								
+								start = stop_info['start'];
+								end = start + chunkSize >= fileList[stop_info['fileIndex']]['size'] ? fileList[stop_info['fileIndex']]['size'] : start + chunkSize;
+								console.log(start, end); 
+							} else {
+								cancel = false;
+							}
+						}
+						var progressPop = window.open("./progress.html", "_blank", options);						
+						
 						if ((navigator.appName == 'Netscape' &&
 							navigator.userAgent.toLowerCase().indexOf('trident') != -1) ||
 							(navigator.userAgent.toLowerCase().indexOf("msie") != -1)) {  // ie -> winPop.onload = new function()
 							progressPop.onload = new function() {
 								popup(progressPop, fileList);
 								upload(start, end, chunkSize, fileList[0]['extension'], fileList[0]['divUpload'], fileList[0]['originalName'], fileList[0]['GUID'],
-									fileList[0]['first'], fileList[0]['last'], 0, fileList[0]['size'], fileList[0]['name'], progressPop);
+									fileList[0]['first'], fileList[0]['last'], 0, fileList[0]['size'], fileList[0]['name'], progressPop, fileList[0]['complete']);
 							}
 						} else {
 							progressPop.onload = function() {
 								popup(progressPop, fileList);
 								upload(start, end, chunkSize, fileList[0]['extension'], fileList[0]['divUpload'], fileList[0]['originalName'], fileList[0]['GUID'],
-									fileList[0]['first'], fileList[0]['last'], 0, fileList[0]['size'], fileList[0]['name'], progressPop, cancel);
+									fileList[0]['first'], fileList[0]['last'], 0, fileList[0]['size'], fileList[0]['name'], progressPop, fileList[0]['complete']);
 							}
 						}
 						break;
@@ -316,19 +333,18 @@
 								file_list.removeChild(chks[k].parentNode.parentNode);
 								fileList.splice(k, 1);
 							}
-							
 						}
 						break;
 					case "deleteAll":
-						var conf = confirm("전체 항목을 제거하시겠습니까?");
+						var del_conf = confirm("전체 항목을 제거하시겠습니까?");
 						var chks = document.querySelectorAll(".input_chk");
 						var file_list = document.getElementById("file_list");
 						
-						if (conf) {
+						if (del_conf) {
 							
 							while (file_list.firstChild) {
 								file_list.removeChild(file_list.firstChild);
-								n++;
+								
 							}
 							fileList.splice(0);
 						} else {

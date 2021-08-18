@@ -50,10 +50,10 @@ public class UploadServlet extends HttpServlet {
 		// TODO Auto-generated method stub
 
 		request.setCharacterEncoding("utf-8");
-		String saveDirectory = "C:\\uploader\\upload_path\\";
-		String tempDirectory = "C:\\uploader\\temp\\";
-//		String saveDirectory = "D:\\upload_path\\";
-//		String tempDirectory = "D:\\temp\\";
+//		String saveDirectory = "C:\\uploader\\upload_path\\";
+//		String tempDirectory = "C:\\uploader\\temp\\";
+		String saveDirectory = "D:\\upload_path\\";
+		String tempDirectory = "D:\\temp\\";
 		String path = "";
 		
 		int maxSize = 1024 * 1024 * 1000;
@@ -67,19 +67,21 @@ public class UploadServlet extends HttpServlet {
 		String blob = multi.getFilesystemName(item);		// chunk file
 		
 		long start = Long.parseLong(multi.getParameter("start"));
+		long end = Long.parseLong(multi.getParameter("end"));
 		String ext = multi.getParameter("extension");
 		boolean divUpload = Boolean.parseBoolean(multi.getParameter("divUpload"));
 		String ofileName = multi.getParameter("originalName");
 		String guid = multi.getParameter("guid");
 		boolean first = Boolean.parseBoolean(multi.getParameter("first"));
 		boolean last = Boolean.parseBoolean(multi.getParameter("last"));
-		int fullSize = Integer.parseInt(multi.getParameter("fullSize"));
+		long fullSize = Long.parseLong(multi.getParameter("fullSize"));
 //		String name = multi.getParameter("name");
 		
 		if (first) {
 			RandomAccessFile main_file = null;
 			FileOutputStream tmp_path = null;
 			path = saveDirectory + guid + ext;
+
 			try {
 				main_file = new RandomAccessFile(path, "rw");
 				main_file.setLength(fullSize);
@@ -115,9 +117,9 @@ public class UploadServlet extends HttpServlet {
 		try {
 			File file = new File(path);
 			main_file = new RandomAccessFile(file, "rw");
-			System.out.println(main_file.getFilePointer());
+			
 			main_file.seek(start);
-			System.out.println(main_file.getFilePointer());
+			
 			fos = new FileOutputStream(main_file.getFD());
 			bos = new BufferedOutputStream(fos);
 			
@@ -133,10 +135,20 @@ public class UploadServlet extends HttpServlet {
 //				
 //				main_file.write(data);
 //			}
-			while ((data = chunk_file.read(buf)) != -1) {
+			while ((data = bis.read(buf)) != -1) {
+//				fos.write(buf, 0, data);
+//				fos.flush();
+//				System.out.println(main_file.getFilePointer());
 				main_file.write(buf, 0, data);
+//				main_file.writeInt(10);
+//				main_file.seek(0);
+//				System.out.println(main_file.readInt());
+//				main_file.writeChar('C');
+//				main_file.writeLong(1010L);
+//				main_file.writeByte(8);
 //				bos.write(buf, 0, data);
 			}
+
 		} catch(Exception ex) {
 			System.out.println(ex.toString());
 		} finally {
@@ -149,27 +161,42 @@ public class UploadServlet extends HttpServlet {
 		}
 		
 		// last chunk?
+		File tmp_path = null;
+		File tmp_file = null;
 		if (divUpload && last) {
+			try {
+				tmp_path = new File(tempDirectory + guid + ".txt");
+				tmp_file = new File(tempDirectory + blob);
+			} catch(Exception ex) {
+				
+			} finally {
+				tmp_path.delete();
+				tmp_file.delete();
+				
+				response.setContentType("text/plain");
+				response.setCharacterEncoding("utf8");
+				PrintWriter out = response.getWriter();
+				out.println(path);
+			}
 			
-			File tmp_path = new File(tempDirectory + guid + ".txt");
-			File tmp_file = new File(tempDirectory + blob);
-			tmp_path.delete();
-			tmp_file.delete();
 			
-			response.setContentType("text/plain");
-			response.setCharacterEncoding("utf8");
-			PrintWriter out = response.getWriter();
-			out.println(path);
 		} else if (!divUpload) {
-			File tmp_path = new File(tempDirectory + guid + ".txt");
-			File tmp_file = new File(tempDirectory + ofileName);
-			tmp_path.delete();
-			tmp_file.delete();
+			try {
+				tmp_path = new File(tempDirectory + guid + ".txt");
+				tmp_file = new File(tempDirectory + ofileName);
+			} catch(Exception ex) {
+				
+			} finally {
+				tmp_path.delete();
+				tmp_file.delete();
+				
+				response.setContentType("text/plain");
+				response.setCharacterEncoding("utf8");
+				PrintWriter out = response.getWriter();
+				out.println(path);
+			}
 			
-			response.setContentType("text/plain");
-			response.setCharacterEncoding("utf8");
-			PrintWriter out = response.getWriter();
-			out.println(path);
+			
 		}
 	    
 //		doGet(request, response);
