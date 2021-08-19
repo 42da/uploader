@@ -11,12 +11,16 @@
 	function roundToOne(num) {		// 반올림
 		return +(Math.round(num + "e+1") + "e-1");
 	}
-	function upload(start, end, chunkSize, extension, divUpload, originalName, guid, first, last, fileIndex, fullSize, name, curWindow, complete) {
+	function upload(start, end, chunkSize, extension, divUpload, originalName, guid, first, last, fileIndex, fullSize, curWindow, complete) {
+		var curFile = fileList[fileIndex];
 		if (complete) {		// 이미 완료한 업로드
-			fileIndex++;
-			upload(start, end, chunkSize, fileList[fileIndex]['extension'], fileList[fileIndex]['divUpload'], fileList[fileIndex]['originalName'],
-						fileList[fileIndex]['GUID'], fileList[fileIndex]['first'], fileList[fileIndex]['last'],
-						fileIndex, fileList[fileIndex]['size'], fileList[fileIndex]['name'], curWindow, fileList[fileIndex]['complete']);
+			if (++fileIndex == fileList.length) {
+				alert("이미 완료된 업로드 입니다.");
+				return;
+			}
+			upload(start, end, chunkSize, curFile['extension'], curFile['divUpload'], curFile['originalName'],
+						curFile['GUID'], curFile['first'], curFile['last'],
+						fileIndex, curFile['size'], curFile['name'], curWindow, curFile['complete']);
 			return;
 		}
 		var cancel_btn = curWindow.document.getElementById("cancel");
@@ -25,7 +29,7 @@
 		}
 		if (cancel) {
 			stop_info['GUID'] = guid;
-			stop_info['path'] = fileList[fileIndex]['path'];
+//			stop_info['path'] = curFile['path'];
 			stop_info['fileIndex'] = fileIndex;
 			stop_info['start'] = start;
 			
@@ -37,8 +41,13 @@
 		var xhr = new XMLHttpRequest();
 
 		xhr.open('POST', '/uploader/UploadServlet');
-		if (divUpload) formData.append('file', fileList[fileIndex]['obj'].slice(start, end));
-		else formData.append('file', fileList[fileIndex]['obj']);
+		if (divUpload) formData.append('file', curFile['obj'].slice(start, end), guid);
+		else formData.append('file', curFile['obj']);
+		
+		if (stop_info['GUID'] != guid && stop_info['GUID']) {
+			formData.append('guidOld', stop_info['GUID']);
+//			formData.append('pathOld', stop_info['path']);
+		} else formData.append('guidOld', "");
 		
 		formData.append('start', start);
 		formData.append('end', end);
@@ -49,7 +58,7 @@
 		formData.append('first', first);
 		formData.append('last', last);
 		formData.append('fullSize', fullSize);
-		formData.append('name', name);
+//		formData.append('name', name);
 
 		xhr.onreadystatechange = function() {
 			if (xhr.readyState === xhr.DONE) {
@@ -62,34 +71,35 @@
 						var loaded_file = document.createElement("li");
 						loaded_file.className = "completed_file";
 						loaded_file.style.marginTop = "20px";
-						loaded_file.innerText = fileList[fileIndex]['originalName'] + " 업로드 완료";
+						loaded_file.innerText = curFile['originalName'] + " 업로드 완료";
 						loaded_list.appendChild(loaded_file);
 						loaded_list.style.width = "768px";
 						loaded_list.style.textAlign = "right";
 
 						document.body.querySelector(".upload_gray").appendChild(loaded_list);
-						fileList[fileIndex]['path'] = xhr.responseText + fileList[fileIndex]['originalName'];
-						fileList[fileIndex]['complete'] = true;
+						curFile['path'] = xhr.responseText;
+						curFile['complete'] = true;
+						console.log(curFile);
 						if (++fileIndex == fileList.length) return;
 						else {
 							start = 0;
 							end = chunkSize;
-							fileList[fileIndex]['last'] = false;
+							curFile['last'] = false;
 						}
 
 					} else {
 						start = end;
 						end = start + chunkSize;
-						fileList[fileIndex]['first'] = false;
+						curFile['first'] = false;
 						if (end >= fullSize) {
 							end = fullSize;
-							fileList[fileIndex]['last'] = true;
+							curFile['last'] = true;
 							
 						}
 					}
-					upload(start, end, chunkSize, fileList[fileIndex]['extension'], fileList[fileIndex]['divUpload'], fileList[fileIndex]['originalName'],
-						fileList[fileIndex]['GUID'], fileList[fileIndex]['first'], fileList[fileIndex]['last'],
-						fileIndex, fileList[fileIndex]['size'], fileList[fileIndex]['name'], curWindow, fileList[fileIndex]['complete']);
+					upload(start, end, chunkSize, curFile['extension'], curFile['divUpload'], curFile['originalName'],
+						curFile['GUID'], curFile['first'], curFile['last'],
+						fileIndex, curFile['size'], curWindow, curFile['complete']);
 				}
 			}
 		}
@@ -141,12 +151,6 @@
 			wrapper.appendChild(title);
 			wrapper.appendChild(bar_container);
 			popWindow.document.body.appendChild(wrapper);
-//			if (num == "_all") {
-//				wrapper.style.position = "fixed";
-//				wrapper.style.width = "100%";
-//				wrapper.style.backgroundColor = "#ffffff";
-//				wrapper.style.marginTop = "0";
-//			}
 		}
 		createBar("_all", "전체 진행률");
 		
@@ -155,17 +159,16 @@
 			createBar(idx, fileList[idx]['originalName']);
 		}
 	}
-	function onlyOne(checkbox) {			// only one checkbox available
-		var checkboxes = document.querySelectorAll("input_chk");
-		checkboxes.forEach(chkbox, function() {
-			if (chkbox !== checkbox) chkbox.checked = false;
-		});
+	function fileExist() {
+		if (fileList.length == 0) {
+			return false;
+		} else return true;
 	}
 	var fileList = [];
 
-	var chunkSize = 10;	
+//	var chunkSize = 10;	
 
-//	var chunkSize = 102 * 102 * 5;	// 1024 * 1024 * 5 하면 차이남 -> formdata의 다른 item(key, value)도 포함되어있기 때문
+	var chunkSize = 102 * 102 * 5;	// 1024 * 1024 * 5 하면 차이남 -> formdata의 다른 item(key, value)도 포함되어있기 때문
 
 	var start = 0;
 	var end = chunkSize;
@@ -180,7 +183,9 @@
 		chk_all.addEventListener("click", function () {
 			var chks = document.querySelectorAll(".input_chk");
 			for (var a = 0; a < chks.length; a++) {
-				chks[a].firstChild.checked = true;
+				if (chks[a].firstChild.checked) chks[a].firstChild.checked = false;
+				else chks[a].firstChild.checked = true;
+				
 			}
 		});
 		
@@ -215,7 +220,7 @@
 											fileIndex: index,
 											size: files[index]['size'],
 											originalName: files[index]['name'],
-											name: files[index]['name'].substring(0, files[index]['name'].lastIndexOf('.')),
+//											name: files[index]['name'].substring(0, files[index]['name'].lastIndexOf('.')),
 											extension: '.' + files[index]['name'].split('.').pop(),
 											chunksize: files[index].slice(start, chunkSize)['size'],
 											lastModified: files[index]['lastModified'],
@@ -271,42 +276,34 @@
 							}
 
 							ol.style.height = String(files.length * 21) + "px";
-							
-							// checkbox (use for delete)
-//							var chks = document.querySelectorAll("ul");
-//							var chksLen = chks.length;
-//							chks.forEach(function(chk) {
-//
-//								chk.addEventListener("click", function() {
-//									switch (chk.id) {
-//										case "fname0":
-//											chk.parentNode.firstChild.firstChild.checked = true;
-//											break;
-//										case "fname1":
-//											chk.parentNode.firstChild.firstChild.checked = true;
-//											break;
-//									}
-//
-//
-//								});
-//							});
-
 						}
 						input.click();	// click 호출을 change 이벤트 이후에 적용(이전에 하면 IE에서 동작x => why?)
 						break;
 					case "submit":
+						if (!fileExist()) {
+							alert("no file");
+							return;
+						} 
+						
 						if (cancel) {
 							var resume = confirm("이어올리기? (취소 시 처음부터)");
+							var curFile = fileList[stop_info['fileIndex']];
 							if (resume) {
-								
 								start = stop_info['start'];
-								end = start + chunkSize >= fileList[stop_info['fileIndex']]['size'] ? fileList[stop_info['fileIndex']]['size'] : start + chunkSize;
-								console.log(start, end); 
+								end = start + chunkSize >= curFile['size'] ? curFile['size'] : start + chunkSize;
+//								curFile['GUID'] = stop_info['GUID'];
+//								curFile['path'] = stop_info['path'];
 							} else {
-								cancel = false;
+								start = 0;
+								end = start + chunkSize;
+								curFile['GUID'] = guid();
+								curFile['first'] = true;
+								curFile['last'] = false;
 							}
+							
+							cancel = false;
 						}
-						var progressPop = window.open("./progress.html", "_blank", options);						
+						var progressPop = window.open("./progress.html", "_blank", options);
 						
 						if ((navigator.appName == 'Netscape' &&
 							navigator.userAgent.toLowerCase().indexOf('trident') != -1) ||
@@ -314,17 +311,21 @@
 							progressPop.onload = new function() {
 								popup(progressPop, fileList);
 								upload(start, end, chunkSize, fileList[0]['extension'], fileList[0]['divUpload'], fileList[0]['originalName'], fileList[0]['GUID'],
-									fileList[0]['first'], fileList[0]['last'], 0, fileList[0]['size'], fileList[0]['name'], progressPop, fileList[0]['complete']);
+									fileList[0]['first'], fileList[0]['last'], 0, fileList[0]['size'], progressPop, fileList[0]['complete']);
 							}
 						} else {
 							progressPop.onload = function() {
 								popup(progressPop, fileList);
 								upload(start, end, chunkSize, fileList[0]['extension'], fileList[0]['divUpload'], fileList[0]['originalName'], fileList[0]['GUID'],
-									fileList[0]['first'], fileList[0]['last'], 0, fileList[0]['size'], fileList[0]['name'], progressPop, fileList[0]['complete']);
+									fileList[0]['first'], fileList[0]['last'], 0, fileList[0]['size'], progressPop, fileList[0]['complete']);
 							}
 						}
 						break;
 					case "delete":
+						if (!fileExist()) {
+							alert("no file");
+							return;
+						}
 						var chks = document.querySelectorAll(".input_chk");
 						var file_list = document.getElementById("file_list");
 						
@@ -336,6 +337,10 @@
 						}
 						break;
 					case "deleteAll":
+						if (!fileExist()) {
+							alert("no file");
+							return;
+						} 
 						var del_conf = confirm("전체 항목을 제거하시겠습니까?");
 						var chks = document.querySelectorAll(".input_chk");
 						var file_list = document.getElementById("file_list");
