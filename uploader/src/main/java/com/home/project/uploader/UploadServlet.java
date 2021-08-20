@@ -56,7 +56,7 @@ public class UploadServlet extends HttpServlet {
 		String tempDirectory = "D:\\temp\\";
 		String path = "";
 		
-		int maxSize = 1024 * 1024 * 1000;
+		int maxSize = 1024 * 1024 * 1024;
 		String encoding = "UTF-8";
 
 //		MultipartRequest multi = new MultipartRequest(request, tempDirectory, maxSize, encoding, new DefaultFileRenamePolicy());
