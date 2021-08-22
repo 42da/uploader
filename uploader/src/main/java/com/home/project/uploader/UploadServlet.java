@@ -50,13 +50,13 @@ public class UploadServlet extends HttpServlet {
 		// TODO Auto-generated method stub
 
 		request.setCharacterEncoding("utf-8");
-		String saveDirectory = "C:\\uploader\\upload_path\\";
-		String tempDirectory = "C:\\uploader\\temp\\";
-//		String saveDirectory = "D:\\upload_path\\";
-//		String tempDirectory = "D:\\temp\\";
+//		String saveDirectory = "C:\\uploader\\upload_path\\";
+//		String tempDirectory = "C:\\uploader\\temp\\";
+		String saveDirectory = "D:\\upload_path\\";
+		String tempDirectory = "D:\\temp\\";
 		String path = "";
 		
-		int maxSize = 1024 * 1024 * 1000;
+		int maxSize = 1024 * 1024 * 1024;
 		String encoding = "UTF-8";
 
 //		MultipartRequest multi = new MultipartRequest(request, tempDirectory, maxSize, encoding, new DefaultFileRenamePolicy());
@@ -67,19 +67,21 @@ public class UploadServlet extends HttpServlet {
 		String blob = multi.getFilesystemName(item);		// chunk file
 		
 		long start = Long.parseLong(multi.getParameter("start"));
+		long end = Long.parseLong(multi.getParameter("end"));
 		String ext = multi.getParameter("extension");
 		boolean divUpload = Boolean.parseBoolean(multi.getParameter("divUpload"));
 		String ofileName = multi.getParameter("originalName");
 		String guid = multi.getParameter("guid");
 		boolean first = Boolean.parseBoolean(multi.getParameter("first"));
 		boolean last = Boolean.parseBoolean(multi.getParameter("last"));
-		int fullSize = Integer.parseInt(multi.getParameter("fullSize"));
-//		String name = multi.getParameter("name");
-		
+		long fullSize = Long.parseLong(multi.getParameter("fullSize"));
+		String guidOld = multi.getParameter("guidOld");
+
 		if (first) {
 			RandomAccessFile main_file = null;
 			FileOutputStream tmp_path = null;
 			path = saveDirectory + guid + ext;
+
 			try {
 				main_file = new RandomAccessFile(path, "rw");
 				main_file.setLength(fullSize);
@@ -92,37 +94,63 @@ public class UploadServlet extends HttpServlet {
 			} finally {
 				main_file.close();
 				tmp_path.close();
-			}
-			
-			
+			}		
 
 		} else {
-			FileInputStream tmp_path = new FileInputStream(tempDirectory + guid + ".txt");
-			int ch = 0;
-			while((ch = tmp_path.read()) != -1) path += ch;		// path setting
+			FileInputStream tmp_path = null;
+			try {
+				File file = new File(tempDirectory + guid + ".txt");
+				tmp_path = new FileInputStream(file);
+				int ch = 0;
+				while((ch = tmp_path.read()) != -1) path += (char)ch;		// path setting -> 형 변환 후 main_file.write() 안되던 오류 없어짐.
+			} catch(Exception ex) {
+				
+			} finally {
+				tmp_path.close();
+			}
+
+		}
+		
+		if (guidOld.length() != 0 && first) {		// 취소 후 다시 업로드 할 때 기존 파일 삭제
+			String pathOld = "";
+			FileInputStream old_path = null;
+			File file = null;
+			File old_blob = null;
+			File old_file = null;
 			
-			tmp_path.close();
+			try {
+				file = new File(tempDirectory + guidOld + ".txt");
+				old_path = new FileInputStream(file);
+				int ch = 0;
+				while((ch = old_path.read()) != -1) pathOld += (char)ch;		// old path setting
+				
+				old_blob = new File(tempDirectory + guidOld);
+				old_file = new File(pathOld);
+
+			} catch (Exception ex) {
+
+			} finally {
+				old_file.delete();
+				old_blob.delete();
+				old_path.close();
+				file.delete();
+			}
 		}
 		
 		// write
-
+		
+		File file = null;
 		RandomAccessFile main_file = null;
-		FileOutputStream fos = null;
-		BufferedOutputStream bos = null;
 		FileInputStream chunk_file = null;
-		BufferedInputStream bis = null;
 		
 		try {
-			File file = new File(path);
+			file = new File(path);
 			main_file = new RandomAccessFile(file, "rw");
-			System.out.println(main_file.getFilePointer());
+
 			main_file.seek(start);
-			System.out.println(main_file.getFilePointer());
-			fos = new FileOutputStream(main_file.getFD());
-			bos = new BufferedOutputStream(fos);
 			
-			chunk_file = new FileInputStream(tempDirectory + blob);
-			bis = new BufferedInputStream(chunk_file);
+			if (divUpload) chunk_file = new FileInputStream(tempDirectory + guid);
+			else chunk_file = new FileInputStream(tempDirectory + ofileName);
 			
 			int data = 0;
 			int bufferLength = 8 * 1024;
@@ -134,42 +162,56 @@ public class UploadServlet extends HttpServlet {
 //				main_file.write(data);
 //			}
 			while ((data = chunk_file.read(buf)) != -1) {
+
 				main_file.write(buf, 0, data);
-//				bos.write(buf, 0, data);
+
 			}
+
 		} catch(Exception ex) {
+			
 			System.out.println(ex.toString());
 		} finally {
-			bis.close();
 			chunk_file.close();
-			
-			bos.close();
-			fos.close();
 			main_file.close();
 		}
 		
 		// last chunk?
+		File tmp_path = null;
+		File tmp_file = null;
 		if (divUpload && last) {
+			try {
+				tmp_path = new File(tempDirectory + guid + ".txt");
+				tmp_file = new File(tempDirectory + guid);
+			} catch(Exception ex) {
+				
+			} finally {
+				tmp_path.delete();
+				tmp_file.delete();
+				
+				response.setContentType("text/plain");
+				response.setCharacterEncoding("utf8");
+				PrintWriter out = response.getWriter();
+				out.println(path);
+			}
 			
-			File tmp_path = new File(tempDirectory + guid + ".txt");
-			File tmp_file = new File(tempDirectory + blob);
-			tmp_path.delete();
-			tmp_file.delete();
 			
-			response.setContentType("text/plain");
-			response.setCharacterEncoding("utf8");
-			PrintWriter out = response.getWriter();
-			out.println(path);
 		} else if (!divUpload) {
-			File tmp_path = new File(tempDirectory + guid + ".txt");
-			File tmp_file = new File(tempDirectory + ofileName);
-			tmp_path.delete();
-			tmp_file.delete();
+			try {
+				tmp_path = new File(tempDirectory + guid + ".txt");
+				tmp_file = new File(tempDirectory + ofileName);
+			} catch(Exception ex) {
+				
+			} finally {
+				tmp_path.delete();
+				tmp_file.delete();
+				
+				response.setContentType("text/plain");
+				response.setCharacterEncoding("utf8");
+				PrintWriter out = response.getWriter();
+				out.println(path);
+			}
 			
-			response.setContentType("text/plain");
-			response.setCharacterEncoding("utf8");
-			PrintWriter out = response.getWriter();
-			out.println(path);
+			
 		}
 	    
 //		doGet(request, response);
