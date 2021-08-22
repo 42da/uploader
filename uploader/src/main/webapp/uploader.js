@@ -159,8 +159,7 @@
 	}
 	var fileList = [];
 
-	//var chunkSize = 10;	
-=======
+//	var chunkSize = 10;
 	var chunkSize = 102 * 102 * 5;	// 1024 * 1024 * 5 하면 차이남 -> formdata의 다른 item(key, value)도 포함되어있기 때문
 
 	var start = 0;
