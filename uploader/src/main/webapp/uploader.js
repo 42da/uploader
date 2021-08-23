@@ -3,7 +3,7 @@
 
 //	var chunkSize = 10;	
 
-	var chunkSize = 1024 * 1024 * 1;	// 1024 * 1024 * 5 하면 차이남 -> formdata의 다른 item(key, value)도 포함되어있기 때문
+	var chunkSize = 1024 * 1024 * 5;	// 1024 * 1024 * 5 하면 차이남 -> formdata의 다른 item(key, value)도 포함되어있기 때문
 
 	var start = 0;
 	var end = chunkSize;
@@ -38,7 +38,7 @@
 		}
 		if (cancel) {
 			stop_info['GUID'] = guid;
-//			stop_info['path'] = curFile['path'];
+			stop_info['path'] = curFile['path'];
 			stop_info['fileIndex'] = fileIndex;
 			stop_info['start'] = start;
 			
@@ -51,7 +51,7 @@
 
 		xhr.open('POST', '/uploader/UploadServlet');
 		if (divUpload) formData.append('file', curFile['obj'].slice(start, end), guid);
-		else formData.append('file', curFile['obj']);
+		else formData.append('file', curFile['obj'], guid);
 		
 		if (stop_info['GUID'] != guid && stop_info['GUID']) {
 			formData.append('guidOld', stop_info['GUID']);
@@ -72,10 +72,9 @@
 		xhr.onreadystatechange = function() {
 			if (xhr.readyState === xhr.DONE) {
 				if (xhr.status === 0 || (xhr.status >= 200 && xhr.status < 400)) { // In local files, status is 0 upon success in Mozilla Firefox
-					
+					if (!curFile['path']) curFile['path'] = xhr.responseText;
 					if (!divUpload || last) {
 						uploadComplete(curFile['originalName']);
-						curFile['path'] = xhr.responseText;
 						curFile['complete'] = true;
 						
 						stop_info = {};				// upload 완료시 취소 정보 초기화
@@ -223,10 +222,12 @@
 		var chk_all = document.getElementById("check_all");
 		var chks = document.querySelectorAll(".input_chk");
 		var file_list = document.getElementById("file_list");
-		for (var k = 0; k < chks.length; k++) {
-			if (!chks[k].firstChild.checked) {
-				allChk = false;
-				break;
+		if (!all) {
+			for (var k = 0; k < chks.length; k++) {
+				if (!chks[k].firstChild.checked) {
+					allChk = false;
+					break;
+				}
 			}
 		}
 		if (allChk || all) {
@@ -317,22 +318,68 @@
 		document.body.querySelector(".upload_gray").appendChild(loaded_list);
 	}
 	function resumeUpload() {
-		var resume = confirm("이어올리기? (취소 시 처음부터)");
+		var resume = false;
 		var curFile = fileList[stop_info['fileIndex']];
+		for (var s = 0; fileList.length; s++) {
+			if (stop_info['path'] == fileList[s]['path']) {
+				resume = confirm("이어올리기? (취소 시 처음부터)");
+				break;
+			}
+		}
 		if (resume) {		// 이어서 받을 경우 재시작 포인트만 설정
 			start = stop_info['start'];
 			end = start + chunkSize >= curFile['size'] ? curFile['size'] : start + chunkSize;
+			curFile['GUID'] = stop_info['GUID'];
+			curFile['path'] = stop_info['path'];
 		} else {			// 다시 올릴 경우 guid 재생성 및 first, last 설정 변경
 			start = 0;
 			end = start + chunkSize;
 			curFile['GUID'] = guid();
+			curFile['path'] = '';
 			curFile['first'] = true;
 			curFile['last'] = false;
 		}
 
 		cancel = false;
 	}
+	
 	window.onload = function() {
+		
+		var mode_btn = document.querySelector(".mode");
+		var mode_upload = document.querySelector(".upload_gray");
+		var mode_download = document.querySelector(".download_gray");
+		var clk = true;
+		
+		mode_btn.addEventListener('click', function() {
+			clk = clk ? false : true;
+			if (clk) {
+				mode_btn.innerHTML = "upload";
+				mode_download.style.display = "none";
+				mode_upload.style.display = "";
+			} else {
+				mode_btn.innerHTML = "download";
+				mode_upload.style.display = "none";
+				mode_download.style.display = "";
+				fileList.push(
+					{
+//						obj: files[index],
+//						fileIndex: index,
+						size: 20000000,
+						originalName: "dummyfile.txt",
+//						name: "dummyfile",
+//						extension: "txt",
+//						chunksize: files[index].slice(start, chunkSize)['size'],
+						// lastModified: files[index]['lastModified'],
+//						divUpload: files[index]['size'] > chunkSize ? true : false,
+//						GUID: guid(),
+						path: "D:\\download_temp\\dummyfile.txt",
+//						first: true,
+//						last: false,
+//						complete: false
+					}
+				);
+			}
+		});
 		
 		// 전체 파일 체크 or 해제
 		var chk_all = document.getElementById("check_all");
@@ -365,7 +412,7 @@
 							(navigator.userAgent.toLowerCase().indexOf("msie") != -1)) {  // ie -> winPop.onload = new function()
 							progressPop.onload = new function() {
 								popup(progressPop, fileList);
-								upload(start, end, chunkSize, start_file['extension'],start_file['divUpload'], start_file['originalName'], start_file['GUID'],
+								upload(start, end, chunkSize, start_file['extension'], start_file['divUpload'], start_file['originalName'], start_file['GUID'],
 									start_file['first'], start_file['last'], 0, start_file['size'], progressPop, start_file['complete']);
 							}
 						} else {
@@ -392,6 +439,8 @@
 						}
 						deleteFile(true);
 						break;
+					case "download":
+						console.log("download btn");
 				}
 			});
 		});

@@ -1,53 +1,104 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="./index.css">
-    <script defer src="./uploader.js"></script>
-    <title>uploader</title>
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="./index.css">
+<script defer src="./uploader.js"></script>
+<title>uploader</title>
 </head>
 <body>
-    <div class="upload_gray" id="wrapper" style="width: 768px; height: 210px; margin: 50px auto;">
-        <div id="content" style="width: 100%; height: 176px;">
-            <div class="uploadbox" style="width: 100%; height: 174px; border: 1px solid #aeaeae;">
-                <div class="uploadbox_tit" style="width: 766px; height: 29px;">
-                    <ul style="background-color: #e2e2e2; width: 100%; height: 28px; border: 1px solid #e2e2e2; position: relative;">
-                        <li style="height: 24px; padding-top: 4px; display: block; width: 23px; position: absolute; line-height: 22px; letter-spacing: -1px; top: 0px;">
-                            <input id="check_all" type="checkbox">
-                        </li>
-                        <li style="height: 24px; padding-top: 4px; padding-left: 35px; margin-left: 0px; text-align: left; position: static;">파일 이름</li>
-                        <li style="border-left: 1px solid #aeaeae; margin-right: 17px; padding-top: 4px; padding-right: 15px; text-align: right; width: 85px; position: absolute; top: 0%;
-                        height: 24px; right: 0px; line-height: 22px; letter-spacing: -1px;">파일 크기</li>
-                    </ul>
-                </div>
-                <div style="width:100%; height:147px; overflow-y: scroll; overflow-x: hidden;">
-                    <div>
-                        <ol id="file_list" style="width: 100%;"></ol>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div>
-            <ul>
-                <li style="background-color: #e2e2e2; padding: 4px 0 0 10px; border: 1px solid #e2e2e2; line-height: 13px; height: 30px;">
-                    <input id="file_add" type="file" style="display: none;" name="upload_file" multiple>
-                    <button id="add" style="cursor: pointer;">파일추가</button>
+	<button class="mode" style="width: 70px; height: 30px; position: absolute; top: 50px; left: 300px;">upload</button>
+	<div class="upload_gray" id="wrapper"
+		style="width: 768px; height: 210px; margin: 50px auto;">
+		<div id="content" style="width: 100%; height: 176px;">
+			<div class="uploadbox"
+				style="width: 100%; height: 174px; border: 1px solid #aeaeae;">
+				<div class="uploadbox_tit" style="width: 766px; height: 29px;">
+					<ul
+						style="background-color: #e2e2e2; width: 100%; height: 28px; border: 1px solid #e2e2e2; position: relative;">
+						<li
+							style="height: 24px; padding-top: 4px; display: block; width: 23px; position: absolute; line-height: 22px; letter-spacing: -1px; top: 0px;">
+							<input id="check_all" type="checkbox">
+						</li>
+						<li
+							style="height: 24px; padding-top: 4px; padding-left: 35px; margin-left: 0px; text-align: left; position: static;">파일
+							이름</li>
+						<li
+							style="border-left: 1px solid #aeaeae; margin-right: 17px; padding-top: 4px; padding-right: 15px; text-align: right; width: 85px; position: absolute; top: 0%; height: 24px; right: 0px; line-height: 22px; letter-spacing: -1px;">파일
+							크기</li>
+					</ul>
+				</div>
+				<div
+					style="width: 100%; height: 147px; overflow-y: scroll; overflow-x: hidden;">
+					<div>
+						<ol id="file_list" style="width: 100%;"></ol>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div>
+			<ul>
+				<li
+					style="background-color: #e2e2e2; padding: 4px 0 0 10px; border: 1px solid #e2e2e2; line-height: 13px; height: 30px;">
+					<input id="file_add" type="file" style="display: none;"
+					name="upload_file" multiple>
+					<button id="add" style="cursor: pointer;">파일추가</button>
 
-                    
-                    <button id="submit" style="cursor: pointer;">전송하기</button>
 
-                    <input id="file_delete" type="file" style="display: none;">
-                    <button id="delete" style="cursor: pointer;">항목제거</button>
+					<button id="submit" style="cursor: pointer;">전송하기</button> <input
+					id="file_delete" type="file" style="display: none;">
+					<button id="delete" style="cursor: pointer;">항목제거</button> <input
+					id="file_delAll" type="file" style="display: none;">
+					<button id="deleteAll" style="cursor: pointer;">전체 항목제거</button>
+				</li>
+			</ul>
+		</div>
 
-                    <input id="file_delAll" type="file" style="display: none;">
-                    <button id="deleteAll" style="cursor: pointer;">전체 항목제거</button>
-                </li>
-            </ul>
-        </div>
-		
 	</div>
-	
+
+	<div class="download_gray" id="wrapper"
+		style="width: 768px; height: 210px; margin: 50px auto; display: none;">
+		<div id="content" style="width: 100%; height: 176px;">
+			<div class="downloadbox"
+				style="width: 100%; height: 174px; border: 1px solid #aeaeae;">
+				<div class="downloadbox_tit" style="width: 766px; height: 29px;">
+					<ul
+						style="background-color: #e2e2e2; width: 100%; height: 28px; border: 1px solid #e2e2e2; position: relative;">
+						<li
+							style="height: 24px; padding-top: 4px; display: block; width: 23px; position: absolute; line-height: 22px; letter-spacing: -1px; top: 0px;">
+							<input id="check_all" type="checkbox">
+						</li>
+						<li	style="height: 24px; padding-top: 4px; padding-left: 35px; margin-left: 0px; text-align: left; position: static;">파일 이름</li>
+						<li	style="border-left: 1px solid #aeaeae; margin-right: 17px; padding-top: 4px; padding-right: 15px; text-align: right; width: 85px; position: absolute; top: 0%; height: 24px; right: 0px; line-height: 22px; letter-spacing: -1px;">파일 크기</li>
+					</ul>
+				</div>
+				<div style="width: 100%; height: 147px; overflow-y: scroll; overflow-x: hidden;">
+					<div>
+						<ol id="file_list" style="width: 100%;">
+<!-- 						<a href="">aa</a> -->
+							<li class="file"><ul>
+									<li class="input_chk"><input id="chk_file_0"
+										type="checkbox"></li>
+									<li class="fname"><span title="dummyfile.txt"
+										style="text-align: left;">dummyfile.txt</span></li>
+									<li class="fsize"><span title="20000000 bytes"
+										style="text-align: right;">20000000 bytes</span></li>
+								</ul></li>
+						</ol>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div>
+			<ul>
+				<li	style="background-color: #e2e2e2; padding: 4px 0 0 10px; border: 1px solid #e2e2e2; line-height: 13px; height: 30px;">
+<!-- 					<input id="file_add" type="file" style="display: none;"	name="download_file" multiple> -->
+					<button id="download" style="cursor: pointer;">다운로드</button>
+				</li>
+			</ul>
+		</div>
+	</div>
 </body>
 </html>

@@ -62,20 +62,20 @@ public class UploadServlet extends HttpServlet {
 //		MultipartRequest multi = new MultipartRequest(request, tempDirectory, maxSize, encoding, new DefaultFileRenamePolicy());
 		MultipartRequest multi = new MultipartRequest(request, tempDirectory, maxSize, encoding);
 
-		Enumeration files = multi.getFileNames();
-		String item = (String) files.nextElement();
-		String blob = multi.getFilesystemName(item);		// chunk file
+//		Enumeration files = multi.getFileNames();
+//		String item = (String) files.nextElement();
+//		String blob = multi.getFilesystemName(item);		// chunk file
 		
 		long start = Long.parseLong(multi.getParameter("start"));
-		long end = Long.parseLong(multi.getParameter("end"));
+//		long end = Long.parseLong(multi.getParameter("end"));
 		String ext = multi.getParameter("extension");
 		boolean divUpload = Boolean.parseBoolean(multi.getParameter("divUpload"));
-		String ofileName = multi.getParameter("originalName");
+//		String ofileName = multi.getParameter("originalName");
 		String guid = multi.getParameter("guid");
 		boolean first = Boolean.parseBoolean(multi.getParameter("first"));
 		boolean last = Boolean.parseBoolean(multi.getParameter("last"));
 		long fullSize = Long.parseLong(multi.getParameter("fullSize"));
-		String guidOld = multi.getParameter("guidOld");
+//		String guidOld = multi.getParameter("guidOld");
 
 		if (first) {
 			RandomAccessFile main_file = null;
@@ -111,34 +111,33 @@ public class UploadServlet extends HttpServlet {
 
 		}
 		
-		if (guidOld.length() != 0 && first) {		// 취소 후 다시 업로드 할 때 기존 파일 삭제
-			String pathOld = "";
-			FileInputStream old_path = null;
-			File file = null;
-			File old_blob = null;
-			File old_file = null;
-			
-			try {
-				file = new File(tempDirectory + guidOld + ".txt");
-				old_path = new FileInputStream(file);
-				int ch = 0;
-				while((ch = old_path.read()) != -1) pathOld += (char)ch;		// old path setting
-				
-				old_blob = new File(tempDirectory + guidOld);
-				old_file = new File(pathOld);
-
-			} catch (Exception ex) {
-
-			} finally {
-				old_file.delete();
-				old_blob.delete();
-				old_path.close();
-				file.delete();
-			}
-		}
+//		if (guidOld.length() != 0 && first) {		// 취소 후 다시 업로드 할 때 기존 파일 삭제
+//			String pathOld = "";
+//			FileInputStream old_path = null;
+//			File file = null;
+//			File old_blob = null;
+//			File old_file = null;
+//			
+//			try {
+//				file = new File(tempDirectory + guidOld + ".txt");
+//				old_path = new FileInputStream(file);
+//				int ch = 0;
+//				while((ch = old_path.read()) != -1) pathOld += (char)ch;		// old path setting
+//				
+//				old_blob = new File(tempDirectory + guidOld);
+//				old_file = new File(pathOld);
+//
+//			} catch (Exception ex) {
+//
+//			} finally {
+//				old_file.delete();
+//				old_blob.delete();
+//				old_path.close();
+//				file.delete();
+//			}
+//		}
 		
 		// write
-		
 		File file = null;
 		RandomAccessFile main_file = null;
 		FileInputStream chunk_file = null;
@@ -150,23 +149,18 @@ public class UploadServlet extends HttpServlet {
 			main_file.seek(start);
 			
 			if (divUpload) chunk_file = new FileInputStream(tempDirectory + guid);
-			else chunk_file = new FileInputStream(tempDirectory + ofileName);
+			else chunk_file = new FileInputStream(tempDirectory + guid);
 			
 			int data = 0;
 			int bufferLength = 8 * 1024;
 			byte[] buf = new byte[bufferLength];		// 1024 or 8 * 1024
-			
-//			while((data = chunk_file.read()) != -1) {		// .read() 하는 순간 다음 byte 읽음
-//				main_file.write(chunk_file.read());			// data를 써야 하는데 다음 byte가 써짐.
-//				
-//				main_file.write(data);
-//			}
+		
 			while ((data = chunk_file.read(buf)) != -1) {
 
 				main_file.write(buf, 0, data);
-
+				
 			}
-
+			
 		} catch(Exception ex) {
 			
 			System.out.println(ex.toString());
@@ -175,10 +169,12 @@ public class UploadServlet extends HttpServlet {
 			main_file.close();
 		}
 		
-		// last chunk?
+		// not divupload or last chunk 
+		
 		File tmp_path = null;
 		File tmp_file = null;
-		if (divUpload && last) {
+
+		if (!divUpload || last) {
 			try {
 				tmp_path = new File(tempDirectory + guid + ".txt");
 				tmp_file = new File(tempDirectory + guid);
@@ -190,28 +186,10 @@ public class UploadServlet extends HttpServlet {
 				
 				response.setContentType("text/plain");
 				response.setCharacterEncoding("utf8");
-				PrintWriter out = response.getWriter();
-				out.println(path);
+//				PrintWriter out = response.getWriter();
+//				out.println(path);
 			}
-			
-			
-		} else if (!divUpload) {
-			try {
-				tmp_path = new File(tempDirectory + guid + ".txt");
-				tmp_file = new File(tempDirectory + ofileName);
-			} catch(Exception ex) {
-				
-			} finally {
-				tmp_path.delete();
-				tmp_file.delete();
-				
-				response.setContentType("text/plain");
-				response.setCharacterEncoding("utf8");
-				PrintWriter out = response.getWriter();
-				out.println(path);
-			}
-			
-			
+		
 		}
 	    
 //		doGet(request, response);
