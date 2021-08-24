@@ -83,8 +83,8 @@
 										type="checkbox"></li>
 									<li class="fname"><span title="dummyfile.txt"
 										style="text-align: left;">dummyfile.txt</span></li>
-									<li class="fsize"><span title="20000000 bytes"
-										style="text-align: right;">20000000 bytes</span></li>
+									<li class="fsize"><span title="200000000 bytes"
+										style="text-align: right;">200000000 bytes</span></li>
 								</ul></li>
 						</ol>
 					</div>
@@ -100,5 +100,12 @@
 			</ul>
 		</div>
 	</div>
+	
+	<form id="download_form" method="post" action="UploadServlet" target="downloadframe" enctype="multipart/form-data">
+		<input name="path" value="D:\\download_temp\\dummy200M.txt"/>
+		<input name="originalName" value="dummy200M.txt""/>
+	</form>
+	<button onclick="javascript:document.getElementById('download_form').submit();">download</button>
+	<iframe name="downloadframe" style="display:none;"></iframe>
 </body>
 </html>

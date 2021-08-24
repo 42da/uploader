@@ -1,8 +1,11 @@
 package com.home.project.uploader;
 
 import java.io.*;
+import java.net.URLConnection;
 import java.nio.charset.Charset;
 
+import javax.servlet.*;
+import javax.servlet.http.*;
 import javax.servlet.ServletInputStream;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -58,7 +61,9 @@ public class UploadServlet extends HttpServlet {
 		
 		int maxSize = 1024 * 1024 * 1024;
 		String encoding = "UTF-8";
-
+		int data = 0;
+		int bufferLength = 8 * 1024;
+		byte[] buf = new byte[bufferLength];		// 1024 or 8 * 1024
 //		MultipartRequest multi = new MultipartRequest(request, tempDirectory, maxSize, encoding, new DefaultFileRenamePolicy());
 		MultipartRequest multi = new MultipartRequest(request, tempDirectory, maxSize, encoding);
 
@@ -66,132 +71,174 @@ public class UploadServlet extends HttpServlet {
 //		String item = (String) files.nextElement();
 //		String blob = multi.getFilesystemName(item);		// chunk file
 		
-		long start = Long.parseLong(multi.getParameter("start"));
-//		long end = Long.parseLong(multi.getParameter("end"));
-		String ext = multi.getParameter("extension");
-		boolean divUpload = Boolean.parseBoolean(multi.getParameter("divUpload"));
-//		String ofileName = multi.getParameter("originalName");
-		String guid = multi.getParameter("guid");
-		boolean first = Boolean.parseBoolean(multi.getParameter("first"));
-		boolean last = Boolean.parseBoolean(multi.getParameter("last"));
-		long fullSize = Long.parseLong(multi.getParameter("fullSize"));
-//		String guidOld = multi.getParameter("guidOld");
+//		boolean download = Boolean.parseBoolean(multi.getParameter("download"));
+		boolean download = true;
+		if (download) {
+			String ofileName = multi.getParameter("originalName");
+			path = multi.getParameter("path");
+			System.out.println(path);
+			System.out.println(ofileName);
+//			String mimetype = URLConnection.guessContentTypeFromName(path);
 
-		if (first) {
-			RandomAccessFile main_file = null;
-			FileOutputStream tmp_path = null;
-			path = saveDirectory + guid + ext;
-
+//			response.setContentType(mimetype);
+			response.setContentType("application/octet-stream; charset=UTF-8");
+			response.setHeader("Content-Disposition", "attachment; filename=" + ofileName);
+			response.setHeader("Content-Transfer-Encoding", "binary");
+//			response.setHeader("Content-Length", "25");
+			
+			File file = null;
+			FileInputStream fis = null;
+			BufferedInputStream bis = null;
+			BufferedOutputStream bos = null;
+//			ServletOutputStream sos = null;
 			try {
-				main_file = new RandomAccessFile(path, "rw");
-				main_file.setLength(fullSize);
+				file = new File(path);
+				fis = new FileInputStream(file);
+				bis = new BufferedInputStream(fis);
 				
-				File file = new File(tempDirectory + guid + ".txt");
-				tmp_path = new FileOutputStream(file);
-				tmp_path.write(path.getBytes());
-			} catch(Exception ex) {
+//				sos = response.getOutputStream();
+				bos = new BufferedOutputStream(response.getOutputStream());
 				
-			} finally {
-				main_file.close();
-				tmp_path.close();
-			}		
+				
+				while ((data = fis.read(buf)) != -1) {
+					bos.write(buf, 0, data);
+				}
 
-		} else {
-			FileInputStream tmp_path = null;
-			try {
-				File file = new File(tempDirectory + guid + ".txt");
-				tmp_path = new FileInputStream(file);
-				int ch = 0;
-				while((ch = tmp_path.read()) != -1) path += (char)ch;		// path setting -> 형 변환 후 main_file.write() 안되던 오류 없어짐.
 			} catch(Exception ex) {
-				
+				ex.toString();
 			} finally {
-				tmp_path.close();
+				
+				bis.close();
+				fis.close();
+				bos.close();
 			}
-
+			
 		}
-		
-//		if (guidOld.length() != 0 && first) {		// 취소 후 다시 업로드 할 때 기존 파일 삭제
-//			String pathOld = "";
-//			FileInputStream old_path = null;
-//			File file = null;
-//			File old_blob = null;
-//			File old_file = null;
-//			
-//			try {
-//				file = new File(tempDirectory + guidOld + ".txt");
-//				old_path = new FileInputStream(file);
-//				int ch = 0;
-//				while((ch = old_path.read()) != -1) pathOld += (char)ch;		// old path setting
+		else {
+			long start = Long.parseLong(multi.getParameter("start"));
+//			long end = Long.parseLong(multi.getParameter("end"));
+			String ext = multi.getParameter("extension");
+			boolean divUpload = Boolean.parseBoolean(multi.getParameter("divUpload"));
+//			String ofileName = multi.getParameter("originalName");
+			String guid = multi.getParameter("guid");
+			boolean first = Boolean.parseBoolean(multi.getParameter("first"));
+			boolean last = Boolean.parseBoolean(multi.getParameter("last"));
+			long fullSize = Long.parseLong(multi.getParameter("fullSize"));
+//			String guidOld = multi.getParameter("guidOld");
+
+			if (first) {
+				RandomAccessFile main_file = null;
+				FileOutputStream tmp_path = null;
+				path = saveDirectory + guid + ext;
+
+				try {
+					main_file = new RandomAccessFile(path, "rw");
+					main_file.setLength(fullSize);
+					
+					File file = new File(tempDirectory + guid + ".txt");
+					tmp_path = new FileOutputStream(file);
+					tmp_path.write(path.getBytes());
+				} catch(Exception ex) {
+					
+				} finally {
+					main_file.close();
+					tmp_path.close();
+				}		
+
+			} else {
+				FileInputStream tmp_path = null;
+				try {
+					File file = new File(tempDirectory + guid + ".txt");
+					tmp_path = new FileInputStream(file);
+					int ch = 0;
+					while((ch = tmp_path.read()) != -1) path += (char)ch;		// path setting -> 형 변환 후 main_file.write() 안되던 오류 없어짐.
+				} catch(Exception ex) {
+					
+				} finally {
+					tmp_path.close();
+				}
+
+			}
+			
+//			if (guidOld.length() != 0 && first) {		// 취소 후 다시 업로드 할 때 기존 파일 삭제
+//				String pathOld = "";
+//				FileInputStream old_path = null;
+//				File file = null;
+//				File old_blob = null;
+//				File old_file = null;
 //				
-//				old_blob = new File(tempDirectory + guidOld);
-//				old_file = new File(pathOld);
-//
-//			} catch (Exception ex) {
-//
-//			} finally {
-//				old_file.delete();
-//				old_blob.delete();
-//				old_path.close();
-//				file.delete();
+//				try {
+//					file = new File(tempDirectory + guidOld + ".txt");
+//					old_path = new FileInputStream(file);
+//					int ch = 0;
+//					while((ch = old_path.read()) != -1) pathOld += (char)ch;		// old path setting
+//					
+//					old_blob = new File(tempDirectory + guidOld);
+//					old_file = new File(pathOld);
+	//
+//				} catch (Exception ex) {
+	//
+//				} finally {
+//					old_file.delete();
+//					old_blob.delete();
+//					old_path.close();
+//					file.delete();
+//				}
 //			}
-//		}
-		
-		// write
-		File file = null;
-		RandomAccessFile main_file = null;
-		FileInputStream chunk_file = null;
-		
-		try {
-			file = new File(path);
-			main_file = new RandomAccessFile(file, "rw");
-
-			main_file.seek(start);
 			
-			if (divUpload) chunk_file = new FileInputStream(tempDirectory + guid);
-			else chunk_file = new FileInputStream(tempDirectory + guid);
+			// write
+			File file = null;
+			RandomAccessFile main_file = null;
+			FileInputStream chunk_file = null;
 			
-			int data = 0;
-			int bufferLength = 8 * 1024;
-			byte[] buf = new byte[bufferLength];		// 1024 or 8 * 1024
-		
-			while ((data = chunk_file.read(buf)) != -1) {
-
-				main_file.write(buf, 0, data);
-				
-			}
-			
-		} catch(Exception ex) {
-			
-			System.out.println(ex.toString());
-		} finally {
-			chunk_file.close();
-			main_file.close();
-		}
-		
-		// not divupload or last chunk 
-		
-		File tmp_path = null;
-		File tmp_file = null;
-
-		if (!divUpload || last) {
 			try {
-				tmp_path = new File(tempDirectory + guid + ".txt");
-				tmp_file = new File(tempDirectory + guid);
+				file = new File(path);
+				main_file = new RandomAccessFile(file, "rw");
+
+				main_file.seek(start);
+				
+				if (divUpload) chunk_file = new FileInputStream(tempDirectory + guid);
+				else chunk_file = new FileInputStream(tempDirectory + guid);
+				
+				
+			
+				while ((data = chunk_file.read(buf)) != -1) {
+
+					main_file.write(buf, 0, data);
+					
+				}
+				
 			} catch(Exception ex) {
 				
+				System.out.println(ex.toString());
 			} finally {
-				tmp_path.delete();
-				tmp_file.delete();
-				
-				response.setContentType("text/plain");
-				response.setCharacterEncoding("utf8");
-//				PrintWriter out = response.getWriter();
-//				out.println(path);
+				chunk_file.close();
+				main_file.close();
 			}
-		
+			
+			// not divupload or last chunk 
+			
+			File tmp_path = null;
+			File tmp_file = null;
+
+			if (!divUpload || last) {
+				try {
+					tmp_path = new File(tempDirectory + guid + ".txt");
+					tmp_file = new File(tempDirectory + guid);
+				} catch(Exception ex) {
+					
+				} finally {
+					tmp_path.delete();
+					tmp_file.delete();	
+				}
+			}
+			response.setContentType("text/plain");
+			response.setCharacterEncoding("utf8");
+			PrintWriter out = response.getWriter();
+			out.println(path);
 		}
-	    
+		
+
 //		doGet(request, response);
 	}
 }

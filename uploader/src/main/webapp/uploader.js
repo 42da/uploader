@@ -53,10 +53,10 @@
 		if (divUpload) formData.append('file', curFile['obj'].slice(start, end), guid);
 		else formData.append('file', curFile['obj'], guid);
 		
-		if (stop_info['GUID'] != guid && stop_info['GUID']) {
-			formData.append('guidOld', stop_info['GUID']);
+//		if (stop_info['GUID'] != guid && stop_info['GUID']) {
+//			formData.append('guidOld', stop_info['GUID']);
 //			formData.append('pathOld', stop_info['path']);
-		} else formData.append('guidOld', "");
+//		} else formData.append('guidOld', "");
 		
 		formData.append('start', start);
 		formData.append('end', end);
@@ -67,12 +67,12 @@
 		formData.append('first', first);
 		formData.append('last', last);
 		formData.append('fullSize', fullSize);
-//		formData.append('name', name);
-
+		formData.append('download', false);
 		xhr.onreadystatechange = function() {
 			if (xhr.readyState === xhr.DONE) {
 				if (xhr.status === 0 || (xhr.status >= 200 && xhr.status < 400)) { // In local files, status is 0 upon success in Mozilla Firefox
 					if (!curFile['path']) curFile['path'] = xhr.responseText;
+					
 					if (!divUpload || last) {
 						uploadComplete(curFile['originalName']);
 						curFile['complete'] = true;
@@ -255,7 +255,7 @@
 		}
 		chk_all.checked = false;
 	}
-	function popup(popWindow, fileList) {
+	function popup(popWindow) {
 		var createBar = function(num, innerhtml) {
 			var wrapper = popWindow.document.createElement("div");
 			wrapper.id = "wrapper_progress" + num;
@@ -342,8 +342,48 @@
 
 		cancel = false;
 	}
-	
+	function download(curWindow, fileIndex) {
+
+		var formData = new FormData();
+		var xhr = new XMLHttpRequest();
+		
+		formData.append('path', fileList[fileIndex]['path']);
+		formData.append('originalName', fileList[fileIndex]['originalName']);
+		formData.append('download', true);
+		
+		xhr.open('POST', '/uploader/UploadServlet');
+//		xhr.onload = function() {
+//			var link = document.createElement('a');
+//			link.href = URL.createObjectURL(this.response);
+//			link.download = fileList[fileIndex]['originalName'];
+//			link.click();
+//			console.log("done", this.response);
+//		}
+		xhr.onprogress = function(e) {
+			console.log(e.loaded);
+//			console.log(e.loaded / fileList[0]['size'] * 100);
+			var total = curWindow.document.getElementById("progress_bar_all");
+			var ratio = roundToOne(e.loaded / fileList[fileIndex]['size'] * 100);
+			var total_ratio = ratio;
+//			var total_ratio = ratio == 100 ? roundToOne(((fileIndex + 1 - comp_cnt) / fileList.length - comp_cnt) * 100) : roundToOne((fileIndex - comp_cnt + (ratio / 100)) / (fileList.length - comp_cnt) * 100);
+			total.style.width = total_ratio + '%';
+			total.innerHTML = total_ratio + '% complete';
+
+			var progress = curWindow.document.getElementById("progress_bar" + fileIndex);
+			progress.style.width = ratio + '%';
+			progress.innerHTML = ratio + '% complete';
+
+			if (ratio == 100) curWindow.close();	// 마지막 파일 업로드 후 팝업창 닫기
+		}
+		xhr.responseType = 'blob';	// 안해주면 파일 깨짐.
+		xhr.send(formData);
+	}
 	window.onload = function() {
+//		var downFile = "tmp.txt";
+//		var downFile = "dummyfile.txt";
+//		var downFile = "KakaoTalk_20210805_152531256_01.jpg";
+//		var downFile = "dummy200M.txt";
+		var downFile = "The import cannot be resolved issue 21.08.08.txt";
 		
 		var mode_btn = document.querySelector(".mode");
 		var mode_upload = document.querySelector(".upload_gray");
@@ -362,20 +402,9 @@
 				mode_download.style.display = "";
 				fileList.push(
 					{
-//						obj: files[index],
-//						fileIndex: index,
-						size: 20000000,
-						originalName: "dummyfile.txt",
-//						name: "dummyfile",
-//						extension: "txt",
-//						chunksize: files[index].slice(start, chunkSize)['size'],
-						// lastModified: files[index]['lastModified'],
-//						divUpload: files[index]['size'] > chunkSize ? true : false,
-//						GUID: guid(),
-						path: "D:\\download_temp\\dummyfile.txt",
-//						first: true,
-//						last: false,
-//						complete: false
+						size: 334,
+						originalName: downFile,
+						path: "D:\\download_temp\\" + downFile
 					}
 				);
 			}
@@ -411,13 +440,13 @@
 							navigator.userAgent.toLowerCase().indexOf('trident') != -1) ||
 							(navigator.userAgent.toLowerCase().indexOf("msie") != -1)) {  // ie -> winPop.onload = new function()
 							progressPop.onload = new function() {
-								popup(progressPop, fileList);
+								popup(progressPop);
 								upload(start, end, chunkSize, start_file['extension'], start_file['divUpload'], start_file['originalName'], start_file['GUID'],
 									start_file['first'], start_file['last'], 0, start_file['size'], progressPop, start_file['complete']);
 							}
 						} else {
 							progressPop.onload = function() {
-								popup(progressPop, fileList);
+								popup(progressPop);
 								upload(start, end, chunkSize, start_file['extension'], start_file['divUpload'], start_file['originalName'], start_file['GUID'],
 									start_file['first'], start_file['last'], 0, start_file['size'], progressPop, start_file['complete']);
 							}
@@ -440,7 +469,12 @@
 						deleteFile(true);
 						break;
 					case "download":
-						console.log("download btn");
+						var progressPop = window.open("./progress.html", "_blank", options);
+						progressPop.onload = function() {
+							popup(progressPop);
+							download(progressPop, 0);
+						}
+						
 				}
 			});
 		});
