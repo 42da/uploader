@@ -57,6 +57,7 @@ public class UploadServlet extends HttpServlet {
 //		String tempDirectory = "C:\\uploader\\temp\\";
 		String saveDirectory = "D:\\upload_path\\";
 		String tempDirectory = "D:\\temp\\";
+		String downDirectory = "D:\\download_temp\\";
 		String path = "";
 		
 		int maxSize = 1024 * 1024 * 1024;
@@ -71,13 +72,15 @@ public class UploadServlet extends HttpServlet {
 //		String item = (String) files.nextElement();
 //		String blob = multi.getFilesystemName(item);		// chunk file
 		
-//		boolean download = Boolean.parseBoolean(multi.getParameter("download"));
-		boolean download = true;
-		if (download) {
-			String ofileName = multi.getParameter("originalName");
-			path = multi.getParameter("path");
-			System.out.println(path);
-			System.out.println(ofileName);
+		String mode = multi.getParameter("mode");
+		String guid = multi.getParameter("GUID");
+		
+		if (mode.equals("download")) {
+
+			path = multi.getParameter("path0");
+			String ofileName = multi.getParameter("originalName0");
+			ofileName = new String(ofileName.getBytes("UTF-8"), "ISO-8859-1");		// 크롬 한글 깨짐 (브라우저마다 해결 방식 다름)
+			
 //			String mimetype = URLConnection.guessContentTypeFromName(path);
 
 //			response.setContentType(mimetype);
@@ -86,24 +89,34 @@ public class UploadServlet extends HttpServlet {
 			response.setHeader("Content-Transfer-Encoding", "binary");
 //			response.setHeader("Content-Length", "25");
 			
+			File pfile = null;
+			FileOutputStream fos = null;
 			File file = null;
 			FileInputStream fis = null;
 			BufferedInputStream bis = null;
 			BufferedOutputStream bos = null;
 //			ServletOutputStream sos = null;
 			try {
+				
+				
 				file = new File(path);
 				fis = new FileInputStream(file);
 				bis = new BufferedInputStream(fis);
 				
 //				sos = response.getOutputStream();
 				bos = new BufferedOutputStream(response.getOutputStream());
-				
-				
-				while ((data = fis.read(buf)) != -1) {
-					bos.write(buf, 0, data);
+				int cur = 0;
+				int writeData = 0;
+				while ((writeData = fis.read(buf)) != -1) {
+//					System.out.println(data);
+					cur += writeData;
+					bos.write(buf, 0, writeData);
+					pfile = new File(downDirectory + guid +".txt");
+					fos = new FileOutputStream(pfile);
+					fos.write(Integer.toString(cur).getBytes());
+					fos.close();
 				}
-
+				
 			} catch(Exception ex) {
 				ex.toString();
 			} finally {
@@ -111,16 +124,52 @@ public class UploadServlet extends HttpServlet {
 				bis.close();
 				fis.close();
 				bos.close();
+				
 			}
 			
-		}
-		else {
+		} else if (mode.equals("progress")) {
+			File file = null;
+			FileReader fr = null;
+			BufferedReader br = null;
+//			FileInputStream fis = null;
+			response.setContentType("text/plain");
+			response.setCharacterEncoding("utf8");
+			PrintWriter out = response.getWriter();
+			try {
+				file = new File(downDirectory + guid + ".txt");
+				fr = new FileReader(file);
+				br = new BufferedReader(fr);
+//				fis = new FileInputStream(file);
+				String readData = "";
+				String cur = "";
+				
+				while ((readData = br.readLine()) != null) cur = readData;
+			
+				System.out.println(cur);
+				out.println(cur);
+				br.close();
+				fr.close();
+//				fis.close();
+				
+			} catch(Exception ex) {
+				out.println("0");
+				ex.toString();
+			} finally {
+				
+				
+			}
+//			response.setContentType("text/plain");
+//			response.setCharacterEncoding("utf8");
+//			PrintWriter out = response.getWriter();
+//			out.println("do something about progress");
+//			System.out.println("do something about progress");
+		} else {
 			long start = Long.parseLong(multi.getParameter("start"));
 //			long end = Long.parseLong(multi.getParameter("end"));
 			String ext = multi.getParameter("extension");
 			boolean divUpload = Boolean.parseBoolean(multi.getParameter("divUpload"));
 //			String ofileName = multi.getParameter("originalName");
-			String guid = multi.getParameter("guid");
+//			String guid = multi.getParameter("guid");
 			boolean first = Boolean.parseBoolean(multi.getParameter("first"));
 			boolean last = Boolean.parseBoolean(multi.getParameter("last"));
 			long fullSize = Long.parseLong(multi.getParameter("fullSize"));
@@ -229,13 +278,17 @@ public class UploadServlet extends HttpServlet {
 					
 				} finally {
 					tmp_path.delete();
-					tmp_file.delete();	
+					tmp_file.delete();
 				}
 			}
-			response.setContentType("text/plain");
-			response.setCharacterEncoding("utf8");
-			PrintWriter out = response.getWriter();
-			out.println(path);
+			if (first) {
+				
+				response.setContentType("text/plain");
+				response.setCharacterEncoding("utf8");
+				PrintWriter out = response.getWriter();
+				out.println(path);
+			}
+			
 		}
 		
 

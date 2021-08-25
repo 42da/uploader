@@ -33,7 +33,7 @@
 				<div
 					style="width: 100%; height: 147px; overflow-y: scroll; overflow-x: hidden;">
 					<div>
-						<ol id="file_list" style="width: 100%;"></ol>
+						<ol id="file_list_up" style="width: 100%;"></ol>
 					</div>
 				</div>
 			</div>
@@ -76,17 +76,13 @@
 				</div>
 				<div style="width: 100%; height: 147px; overflow-y: scroll; overflow-x: hidden;">
 					<div>
-						<ol id="file_list" style="width: 100%;">
-<!-- 						<a href="">aa</a> -->
-							<li class="file"><ul>
-									<li class="input_chk"><input id="chk_file_0"
-										type="checkbox"></li>
-									<li class="fname"><span title="dummyfile.txt"
-										style="text-align: left;">dummyfile.txt</span></li>
-									<li class="fsize"><span title="200000000 bytes"
-										style="text-align: right;">200000000 bytes</span></li>
-								</ul></li>
-						</ol>
+						<ol id="file_list_down" style="width: 100%;"></ol>
+<!-- 						<form id="download_form" method="post" action="UploadServlet" target="downloadframe" enctype="multipart/form-data"> -->
+<!-- 							<input name="path" value="D:\\download_temp\\The import cannot be resolved issue 21.08.08.txt"	style="display: none;" /> -->
+<!-- 							<input name="originalName" value="The import cannot be resolved issue 21.08.08.txt" " style="display: none;" /> -->
+<!-- 						</form> -->
+						
+<!-- 						<iframe name="downloadframe" style="display: none;"></iframe> -->
 					</div>
 				</div>
 			</div>
@@ -95,17 +91,12 @@
 			<ul>
 				<li	style="background-color: #e2e2e2; padding: 4px 0 0 10px; border: 1px solid #e2e2e2; line-height: 13px; height: 30px;">
 <!-- 					<input id="file_add" type="file" style="display: none;"	name="download_file" multiple> -->
-					<button id="download" style="cursor: pointer;">다운로드</button>
+					<button	id="download" style="cursor: pointer;">다운로드</button>
 				</li>
 			</ul>
 		</div>
 	</div>
 	
-	<form id="download_form" method="post" action="UploadServlet" target="downloadframe" enctype="multipart/form-data">
-		<input name="path" value="D:\\download_temp\\dummy200M.txt"/>
-		<input name="originalName" value="dummy200M.txt""/>
-	</form>
-	<button onclick="javascript:document.getElementById('download_form').submit();">download</button>
-	<iframe name="downloadframe" style="display:none;"></iframe>
+	
 </body>
 </html>
