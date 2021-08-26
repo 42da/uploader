@@ -15,7 +15,6 @@
 		NodeList.prototype.forEach = Array.prototype.forEach;
 	}
 	
-	
 	function upload(start, end, chunkSize, extension, divUpload, originalName, guid, first, last, fileIndex, fullSize, curWindow, complete) {
 		var curFile = fileList[fileIndex];
 
@@ -53,17 +52,11 @@
 		if (divUpload) formData.append('file', curFile['obj'].slice(start, end), guid);
 		else formData.append('file', curFile['obj'], guid);
 		
-//		if (stop_info['GUID'] != guid && stop_info['GUID']) {
-//			formData.append('guidOld', stop_info['GUID']);
-//			formData.append('pathOld', stop_info['path']);
-//		} else formData.append('guidOld', "");
-		
 		formData.append('start', start);
-		formData.append('end', end);
 		formData.append('extension', extension);
 		formData.append('divUpload', divUpload);
 		formData.append('originalName', originalName);
-		formData.append('guid', guid);
+		formData.append('GUID', guid);
 		formData.append('first', first);
 		formData.append('last', last);
 		formData.append('fullSize', fullSize);
@@ -75,7 +68,7 @@
 					if (!curFile['path']) curFile['path'] = xhr.responseText;
 					
 					if (!divUpload || last) {
-						uploadComplete(curFile['originalName']);
+						upDownComplete(curFile['originalName'], "upload");
 						curFile['complete'] = true;
 						
 						stop_info = {};				// upload 완료시 취소 정보 초기화
@@ -126,7 +119,10 @@
 				progress.style.width = ratio + '%';
 				progress.innerHTML = ratio + '% complete';
 
-				if (ratio == 100 && fileIndex + 1 == fileList.length) curWindow.close();	// 마지막 파일 업로드 후 팝업창 닫기
+				if (ratio == 100 && fileIndex + 1 == fileList.length) {
+					curWindow.close();	// 마지막 파일 업로드 후 팝업창 닫기
+						
+				}
 			}
 		}
 		xhr.send(formData);
@@ -224,11 +220,12 @@
 
 		
 	}
-	function deleteFile(all) {
+	function deleteFile(upDown, all) {
+		var mode = upDown ? "up" : "down";
 		var allChk = true;		// 전체선택 상태
 		var chk_all = document.getElementById("check_all");
 		var chks = document.querySelectorAll(".input_chk");
-		var file_list = document.getElementById("file_list");
+		var file_list = document.getElementById("file_list_" + mode);
 		if (!all) {
 			for (var k = 0; k < chks.length; k++) {
 				if (!chks[k].firstChild.checked) {
@@ -310,19 +307,21 @@
 		if (fileList.length == 0) return false;
 		else return true;
 	}
-	function uploadComplete(fileName) {
+	function upDownComplete(fileName, mode) {
 		var loaded_list = document.createElement("ul");
 		loaded_list.className = "completed_list";
 
 		var loaded_file = document.createElement("li");
 		loaded_file.className = "completed_file";
 		loaded_file.style.marginTop = "20px";
-		loaded_file.innerText = fileName + " 업로드 완료";
+		
+		if (mode == "download") loaded_file.innerHTML = fileName + " 다운로드 완료";
+		else loaded_file.innerText = fileName + " 업로드 완료";
 		loaded_list.appendChild(loaded_file);
 		loaded_list.style.width = "768px";
 		loaded_list.style.textAlign = "right";
 
-		document.body.querySelector(".upload_gray").appendChild(loaded_list);
+		document.body.querySelector("." + mode + "_gray").appendChild(loaded_list);
 	}
 	function resumeUpload() {
 		var resume = false;
@@ -353,20 +352,23 @@
 	function download(curWindow, fileIndex) {
 		var submitBtn = document.getElementById('download_form');
 		submitBtn.submit();
-		var cnt = 0;
+		
 		var req = setInterval(function() {
 			var formData = new FormData();
 			var xhr = new XMLHttpRequest();
 
 			formData.append('mode', 'progress');
+			formData.append('fullSize', fileList[fileIndex]['size']);
 			formData.append('GUID', fileList[fileIndex]['GUID']);
 
 			xhr.open('POST', '/uploader/UploadServlet');
 			xhr.onload = function() {
-				if (xhr.responseText.length != 0) {		// 시점차이때문에 응답꼬일시 처리 필요
+
+				var curProgress = Number(xhr.responseText);
+				if (xhr.responseText != -1) {		// 시점차이때문에 응답꼬일시 처리 필요
 
 					var total = curWindow.document.getElementById("progress_bar_all");
-					var ratio = roundToOne(Number(xhr.responseText) / fileList[fileIndex]['size'] * 100);
+					var ratio = roundToOne(curProgress / fileList[fileIndex]['size'] * 100);
 					var total_ratio = ratio;
 
 					total.style.width = total_ratio + '%';
@@ -377,46 +379,14 @@
 					progress.innerHTML = ratio + '% complete';
 				}
 
-				if (ratio == 100) curWindow.close();	// 마지막 파일 업로드 후 팝업창 닫기
+				if (curProgress == fileList[fileIndex]['size']) {		
+					clearInterval(req);
+					curWindow.close();	// 마지막 파일 업로드 후 팝업창 닫기
+					upDownComplete(fileList[fileIndex]['originalName'], "download");
+				}
 			}
 			xhr.send(formData);
-			cnt++;
-			if (cnt == 100) clearInterval(req);
-		}, 5);
-		
-//		var formData = new FormData();
-//		var xhr = new XMLHttpRequest();
-//		
-//		formData.append('path' + fileIndex, fileList[fileIndex]['path']);
-//		formData.append('originalName' + fileIndex, fileList[fileIndex]['originalName']);
-//		formData.append('mode', 'progress');
-//		formData.append('GUID', fileList[fileIndex]['GUID']);
-//
-//		xhr.open('POST', '/uploader/UploadServlet');
-//		xhr.onload = function() {
-//			var link = document.createElement('a');
-//			link.href = URL.createObjectURL(this.response);
-//			link.download = fileList[fileIndex]['originalName'];
-//			link.click();
-//			console.log("done", this.response);
-//		}
-//		xhr.onprogress = function(e) {
-//			console.log(e.loaded);
-//			var total = curWindow.document.getElementById("progress_bar_all");
-//			var ratio = roundToOne(e.loaded / fileList[fileIndex]['size'] * 100);
-//			var total_ratio = ratio;
-//
-//			total.style.width = total_ratio + '%';
-//			total.innerHTML = total_ratio + '% complete';
-//
-//			var progress = curWindow.document.getElementById("progress_bar" + fileIndex);
-//			progress.style.width = ratio + '%';
-//			progress.innerHTML = ratio + '% complete';
-//
-//			if (ratio == 100) curWindow.close();	// 마지막 파일 업로드 후 팝업창 닫기
-//		}
-//		xhr.responseType = 'blob';	// 안해주면 파일 깨짐.
-//		xhr.send(formData);	
+		}, 10);
 	}
 	function addInputToForm(form, name, value, idx) {
 		var input = document.createElement("input");
@@ -426,15 +396,14 @@
 		
 		input.style.display = "none";
 		form.appendChild(input);
-		
 	}
 	window.onload = function() {
 //		var downFile = "tmp.txt";	// 25
 //		var downFile = "The import cannot be resolved issue 21.08.08.txt";	 // 334
 //		var downFile = "개발명세서_정기평_21.08.02.docx";   // 26988
 //		var downFile = "개발명세서_정기평_21.08.12.docx";   // 154500
-		var downFile = "KakaoTalk_20210805_152531256_01.jpg";	// 6739129
-//		var downFile = "dummyfile.txt";	// 20000000
+//		var downFile = "KakaoTalk_20210805_152531256_01.jpg";	// 6739129
+		var downFile = "dummyfile.txt";	// 20000000
 //		var downFile = "dummy200M.txt";		// 200000000
 		
 		var mode_btn = document.querySelector(".mode");
@@ -456,33 +425,39 @@
 				downForm.action = "UploadServlet";
 				downForm.target = "downloadframe";
 				downForm.enctype = "multipart/form-data";
-				
+
 				var iframe = document.createElement("iframe");
 				iframe.name = "downloadframe";
 				iframe.style.display = "none";
-				
+
 				mode_btn.innerHTML = "download";
 				mode_upload.style.display = "none";
 				mode_download.style.display = "";
 				fileList.push(
 					{
-						size: 6739129,
+						size: 20000000,
 						originalName: downFile,
 						path: "D:\\download_temp\\" + downFile,
 						GUID: guid()
 					}
 				);
-				addInputToForm(downForm, "path", fileList[0]['path'], 0);
-				addInputToForm(downForm, "originalName", fileList[0]['originalName'], 0);
-				addInputToForm(downForm, "GUID", fileList[0]['GUID']);
-				addInputToForm(downForm, "mode", "download");
 				
 				var ol = document.getElementById("file_list_down");
-				ol.style.height = String(fileList.length * 21) + "px";
-				ol.appendChild(createFileList(fileList[0]['originalName'], fileList[0]['size'], 0));
+				if (fileList.length == 1) {
+					ol.style.height = String(fileList.length * 21) + "px";
+					
+					addInputToForm(downForm, "path", fileList[0]['path'], 0);
+					addInputToForm(downForm, "originalName", fileList[0]['originalName'], 0);
+					addInputToForm(downForm, "GUID", fileList[0]['GUID']);
+					addInputToForm(downForm, "fullSize", fileList[0]['size'], 0);
+					addInputToForm(downForm, "mode", "download");
+					ol.appendChild(createFileList(fileList[0]['originalName'], fileList[0]['size'], 0));
+
+					ol.parentNode.appendChild(downForm);
+					ol.parentNode.appendChild(iframe);
+					
+				} else fileList.pop();
 				
-				ol.parentNode.appendChild(downForm);
-				ol.parentNode.appendChild(iframe);
 			}
 		});
 		
@@ -505,7 +480,7 @@
 						if (!fileExist()) {
 							alert("no file");
 							return;
-						} 
+						}
 						
 						if (cancel) {
 							resumeUpload();
@@ -528,27 +503,36 @@
 							}
 						}
 						break;
-						
 					case "delete":
 						if (!fileExist()) {
 							alert("no file");
 							return;
 						}
-						deleteFile();
+						deleteFile(clk);
 						break;
 						
 					case "deleteAll":
 						if (!fileExist()) {
 							alert("no file");
 							return;
-						}
-						deleteFile(true);
+						}					
+						deleteFile(clk, true);
 						break;
 					case "download":
 						var progressPop = window.open("./progress.html", "_blank", options);
-						progressPop.onload = function() {
-							popup(progressPop);
-							download(progressPop, 0);
+						if ((navigator.appName == 'Netscape' &&
+							navigator.userAgent.toLowerCase().indexOf('trident') != -1) ||
+							(navigator.userAgent.toLowerCase().indexOf("msie") != -1)) {  // ie -> winPop.onload = new function()
+							
+							progressPop.onload = new function() {
+								popup(progressPop);
+								download(progressPop, 0);
+							}
+						} else {
+							progressPop.onload = function() {
+								popup(progressPop);
+								download(progressPop, 0);
+							}
 						}
 						
 				}
