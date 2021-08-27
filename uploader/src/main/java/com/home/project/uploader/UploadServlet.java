@@ -59,7 +59,7 @@ public class UploadServlet extends HttpServlet {
 //		String tempDirectory = "C:\\uploader\\temp\\";
 		String saveDirectory = "D:\\upload_path\\";
 		String tempDirectory = "D:\\temp\\";
-//		String downDirectory = "D:\\download_temp\\";
+
 		String path = "";
 		
 		int maxSize = 1024 * 1024 * 1024;
@@ -71,10 +71,6 @@ public class UploadServlet extends HttpServlet {
 		
 //		MultipartRequest multi = new MultipartRequest(request, tempDirectory, maxSize, encoding, new DefaultFileRenamePolicy());
 		MultipartRequest multi = new MultipartRequest(request, tempDirectory, maxSize, encoding);
-
-//		Enumeration files = multi.getFileNames();
-//		String item = (String) files.nextElement();
-//		String blob = multi.getFilesystemName(item);		// chunk file
 		
 		String mode = multi.getParameter("mode");
 		String guid = multi.getParameter("GUID");
@@ -85,26 +81,18 @@ public class UploadServlet extends HttpServlet {
 			String ofileName = multi.getParameter("originalName0");
 			
 			String userAgent = request.getHeader("User-Agent");
-			System.out.println(userAgent);
 			
 			if(userAgent.indexOf("Trident") > -1 || userAgent.indexOf("MSIE") > -1) { //IE
 				if(userAgent.indexOf("Trident/7") > -1 || userAgent.indexOf("Trident/6") > -1) {
-					response.setHeader("Content-Disposition",
-							"attachment; filename=" + java.net.URLEncoder.encode(ofileName, "UTF-8") + ";");
+					response.setHeader("Content-Disposition", "attachment; filename=" + java.net.URLEncoder.encode(ofileName, "UTF-8") + ";");
 				} 
 			}
 			else {
 				ofileName = new String(ofileName.getBytes("UTF-8"), "ISO-8859-1");		// 크롬 한글 깨짐 (브라우저마다 해결 방식 다름)
 				response.setHeader("Content-Disposition", "attachment; filename=" + ofileName);
 			}
-			
-			
-			System.out.println(ofileName);
-//			String mimetype = URLConnection.guessContentTypeFromName(path);
 
-//			response.setContentType(mimetype);
 			response.setContentType("application/octet-stream; charset=UTF-8");
-			
 			response.setHeader("Content-Transfer-Encoding", "binary");
 
 			File pfile = null;				// 현재 진행률을 공유하기 위한 file(guid.txt 형태로 저장)
@@ -113,14 +101,13 @@ public class UploadServlet extends HttpServlet {
 			FileInputStream fis = null;
 			BufferedInputStream bis = null;
 			BufferedOutputStream bos = null;
-//			ServletOutputStream sos = null;
+
 			try {
 				
 				file = new File(path);
 				fis = new FileInputStream(file);
 				bis = new BufferedInputStream(fis);
-				
-//				sos = response.getOutputStream();
+
 				bos = new BufferedOutputStream(response.getOutputStream());
 				int cur = 0;
 				
@@ -189,15 +176,12 @@ public class UploadServlet extends HttpServlet {
 
 		} else {
 			long start = Long.parseLong(multi.getParameter("start"));
-			
 			String ext = multi.getParameter("extension");
 			boolean divUpload = Boolean.parseBoolean(multi.getParameter("divUpload"));
-
 			boolean first = Boolean.parseBoolean(multi.getParameter("first"));
 			boolean last = Boolean.parseBoolean(multi.getParameter("last"));
 			long fullSize = Long.parseLong(multi.getParameter("fullSize"));
 
-			
 			if (first) {
 				RandomAccessFile main_file = null;
 				FileOutputStream tmp_path = null;
@@ -246,22 +230,16 @@ public class UploadServlet extends HttpServlet {
 			
 			try {
 				file = new File(path);
+				
 				main_file = new RandomAccessFile(file, "rw");
-
 				main_file.seek(start);
 				
-				if (divUpload) chunk_file = new FileInputStream(tempDirectory + guid);
-				else chunk_file = new FileInputStream(tempDirectory + guid);
+				chunk_file = new FileInputStream(tempDirectory + guid);			// client에서 form data로 파일 보낼 때 guid로 보내도록 설정했기 때문에 단일이든 분할이든 상관 무
 					
-				while ((data = chunk_file.read(buf)) != -1) {
-
-					main_file.write(buf, 0, data);
-					
-				}
+				while ((data = chunk_file.read(buf)) != -1) main_file.write(buf, 0, data);
 				
 			} catch(Exception ex) {
-				
-				System.out.println(ex.toString());
+				ex.toString();
 			} finally {
 				try {
 					if (chunk_file != null) chunk_file.close();
@@ -272,7 +250,6 @@ public class UploadServlet extends HttpServlet {
 			}
 			
 			// not divupload or last chunk 
-			
 			File tmp_path = null;
 			File tmp_file = null;
 

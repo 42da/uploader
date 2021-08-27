@@ -95,41 +95,34 @@
 				}
 			}
 		}
-		xhr.upload.onprogress = function(e) {
-			if (e.lengthComputable) {
+		xhr.upload.onprogress = function() {
 
-				if (divUpload) var ratio = roundToOne((end / fullSize) * 100);		// e.loaded vs end => e.loaded: formdata의 다른 item 까지 계산하므로 안됨.
-				else var ratio = 100;
-				
-				var comp_cnt = 0;
-				if (isEmpty(stop_info)) comp_cnt = 0;			// stop_info 가 비어있으면 취소하지 않은 것이므로 완료된 progressbar 제외하지 않음
-				else {											//             비어있지 않으면 취소 정보가 남아있으므로 이어올리기 할 시 이전에 완료된 파일 갯수
-					for (var c = 0; c < fileList.length; c++) {
-						if (fileList[c]['complete']) comp_cnt++;
-						else break;
-					}
-				}
-				
-				var total = curWindow.document.getElementById("progress_bar_all");
-				var total_ratio = ratio == 100 ? roundToOne(((fileIndex + 1 - comp_cnt) / fileList.length - comp_cnt) * 100) : roundToOne((fileIndex - comp_cnt + (ratio/100)) / (fileList.length - comp_cnt) * 100);
-				total.style.width = total_ratio + '%';
-				total.innerHTML = total_ratio + '% complete';
-				
-				var progress = curWindow.document.getElementById("progress_bar" + fileIndex);
-				progress.style.width = ratio + '%';
-				progress.innerHTML = ratio + '% complete';
+			if (divUpload) var ratio = roundToOne((end / fullSize) * 100);		// e.loaded vs end => e.loaded: formdata의 다른 item 까지 계산하므로 안됨.
+			else var ratio = 100;
 
-				if (ratio == 100 && fileIndex + 1 == fileList.length) {
-					curWindow.close();	// 마지막 파일 업로드 후 팝업창 닫기
-						
-				}
+//			var comp_cnt = 0;
+//			for (var c = 0; c < fileList.length; c++) {
+//				if (fileList[c]['complete']) comp_cnt++;
+//				else break;
+//			}
+			
+			var total = curWindow.document.getElementById("progress_bar_all");
+			
+			var total_ratio = ratio == 100 ? roundToOne(((fileIndex + 1) / fileList.length) * 100) : roundToOne((fileIndex + (ratio/100)) / fileList.length * 100);
+//			var total_ratio = ratio == 100 ? roundToOne(((fileIndex + 1) / fileList.length) * 100) : roundToOne((fileIndex - comp_cnt + (ratio / 100)) / (fileList.length - comp_cnt) * 100);
+			total.style.width = total_ratio + '%';
+			total.innerHTML = total_ratio + '% complete';
+
+			var progress = curWindow.document.getElementById("progress_bar" + fileIndex);
+			progress.style.width = ratio + '%';
+			progress.innerHTML = ratio + '% complete';
+
+			if (ratio == 100 && fileIndex + 1 == fileList.length) {
+				curWindow.close();	// 마지막 파일 업로드 후 팝업창 닫기
 			}
+			
 		}
 		xhr.send(formData);
-	}
-	function isEmpty(obj) {		// 빈 객체인지 확인 -> 비어있지 않은 경우 취소했으므로 이어올리기 할 시 이미 완료된 파일은 progressbar에서 제외.
-								//				-> 비어있으면 취소하지 않았으므로 그대로 계산
-		return Object.keys(obj).length === 0;
 	}
 	function checkAll() {
 		var chks = document.querySelectorAll(".input_chk");
@@ -181,8 +174,12 @@
 		return li;
 		
 	}
-	function addFile() {
-		var files = this.files;
+	function addFile(event) {
+		if (event.type == "drop") {
+			event.preventDefault();
+			var files = event.dataTransfer.files;
+		} else var files = this.files;
+
 		var ol = document.getElementById("file_list_up");
 		ol.style.height = String(files.length * 21) + "px";
 		var listLen = fileList.length;
@@ -201,10 +198,8 @@
 						fileIndex: index,
 						size: files[index]['size'],
 						originalName: files[index]['name'],
-						// name: files[index]['name'].substring(0, files[index]['name'].lastIndexOf('.')),
 						extension: '.' + files[index]['name'].split('.').pop(),
 						chunksize: files[index].slice(start, chunkSize)['size'],
-						// lastModified: files[index]['lastModified'],
 						divUpload: files[index]['size'] > chunkSize ? true : false,
 						GUID: guid(),
 						path: '',
@@ -213,12 +208,9 @@
 						complete: false
 					}
 				);
-				
 				ol.appendChild(createFileList(files[index]['name'], files[index]['size'], index));
 			}
 		}
-
-		
 	}
 	function deleteFile(upDown, all) {
 		var mode = upDown ? "up" : "down";
@@ -326,8 +318,8 @@
 	function resumeUpload() {
 		var resume = false;
 		var curFile = fileList[stop_info['fileIndex']];
-		for (var s = 0; fileList.length; s++) {
-			if (stop_info['path'] == fileList[s]['path']) {
+		for (var i = 0; fileList.length; i++) {
+			if (stop_info['path'] == fileList[i]['path']) {
 				resume = confirm("이어올리기? (취소 시 처음부터)");
 				break;
 			}
@@ -388,7 +380,7 @@
 			xhr.send(formData);
 		}, 10);
 	}
-	function addInputToForm(form, name, value, idx) {
+	function addInputToForm(form, name, value, idx) {			// 여러개 파일 다운로드 시 input name 속성에 index 부여
 		var input = document.createElement("input");
 		if (typeof idx == "number") input.name = name + idx;
 		else input.name = name;
@@ -464,16 +456,23 @@
 		// 전체 파일 체크 or 해제
 		var chk_all = document.getElementById("check_all");
 		chk_all.addEventListener("click", checkAll);
+
+		// file drag & drop
+		var dragZone = document.querySelector(".uploadbox");		
+		dragZone.ondrop = addFile;
+		dragZone.ondragover = function(e) {
+			e.preventDefault();
+		}
 		
 		var btns = document.querySelectorAll("button");
-		
 		btns.forEach(function(btn) {
 			btn.addEventListener("click", function() {
 				switch (btn.id) {
 					case "add":
 						var input = document.getElementById("file_add");
+						
+						input.click();	// click 호출을 change 이벤트 이후에 적용(이전에 하면 IE에서 동작x, 첫 파일추가 때 동작x => why?)
 						input.onchange = addFile;
-						input.click();	// click 호출을 change 이벤트 이후에 적용(이전에 하면 IE에서 동작x => why?)
 						break;
 						
 					case "submit":
@@ -520,6 +519,7 @@
 						break;
 					case "download":
 						var progressPop = window.open("./progress.html", "_blank", options);
+						
 						if ((navigator.appName == 'Netscape' &&
 							navigator.userAgent.toLowerCase().indexOf('trident') != -1) ||
 							(navigator.userAgent.toLowerCase().indexOf("msie") != -1)) {  // ie -> winPop.onload = new function()
@@ -534,9 +534,9 @@
 								download(progressPop, 0);
 							}
 						}
-						
+						break;		
 				}
 			});
-		});
+		});	
 	}
 }());
