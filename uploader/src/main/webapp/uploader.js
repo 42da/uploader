@@ -4,6 +4,7 @@
 	// git test2
 	// git test3
 	// git test4
+	// git test5
 //	var chunkSize = 10;	
 
 	var chunkSize = 1024 * 1024 * 5;	// 1024 * 1024 * 5 하면 차이남 -> formdata의 다른 item(key, value)도 포함되어있기 때문
