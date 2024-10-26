@@ -464,7 +464,8 @@
 			e.preventDefault();
 		}
 		
-		var btns = document.querySelectorAll("button");	// test
+		// git test
+		var btns = document.querySelectorAll("button");
 		btns.forEach(function(btn) {
 			btn.addEventListener("click", function() {
 				switch (btn.id) {
