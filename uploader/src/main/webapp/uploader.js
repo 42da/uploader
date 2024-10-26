@@ -463,8 +463,8 @@
 		dragZone.ondragover = function(e) {
 			e.preventDefault();
 		}
-		// git test
-		var btns = document.querySelectorAll("button");
+		
+		var btns = document.querySelectorAll("button");	// test
 		btns.forEach(function(btn) {
 			btn.addEventListener("click", function() {
 				switch (btn.id) {
